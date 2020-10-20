@@ -1,0 +1,51 @@
+gcit [Source] [Options]
+
+Source is either an ISO filename or folder in GCReEx/DiscEx format.
+
+All options are case insensitive.
+
+-Quit or -Q
+Quit after the operation if there's no errors.
+
+-AlwaysQuit or -AQ
+Quit after the operation even if there's errors.
+Exit codes are as follows 
+0 - No error
+1 - Error during operation
+2 - User cancelled
+3 - Command line error
+
+-Flush
+Flush the file buffers so that the SD card can be ejected almost immediately after the operation.
+
+-Backup or -B
+Save a backup of the original fst.bin and boot.bin files inside the trimmed ISO.
+
+-Align or -A [4|32|32K]  
+Set the alignment used in the ISO. 4 bytes, 32 bytes or 32KB. Default is auto.
+
+-Format or -F [GCReEx|DiscEx|FullISO]
+Set the destination format.  Default is Trimmed ISO.
+
+-Dest or -D [filename|folder]
+Set the output location. 
+GCReEx and DiscEx formats expect a folder. 
+The ISO formats expect a filename.
+When extracting games from a GCOS multiboot disc, a folder is expected regardless of the output format.
+Default is a file or folder called "out" in the same folder as the source.
+
+Examples..
+
+gcit game.iso
+
+gcit game.iso -b -d c:\backup\trimmed.iso 
+
+gcit game.iso -b -a 32K -d c:\backup\trimmed.iso
+
+gcit game.iso -f gcreex -d c:\games\extracted
+
+gcit game.iso -f DiscEx -d c:\games\extracted
+
+gcit game.iso -q -flush -f FullISO -d "c:\folder with spaces\full.iso"
+
+gcit multigame.iso -q -f discex -d "c:\games"
