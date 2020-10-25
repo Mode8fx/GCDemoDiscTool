@@ -15,7 +15,6 @@ import subprocess
 """
 TODO LIST
 
-- Moderate - Add the ability to remove content
 - Moderate - Finish GBA section
 - Moderate - Change disc settings (time before autoplay, etc)
 - Mild - Change game header
@@ -41,7 +40,6 @@ gbaEmulatorFile2 = path.join(currFolder, "apps", "zz_MarioPinballLand_game.tgc")
 tempFolder = path.join(currFolder, "temp")
 tempDemoDiscFolder = path.join(tempFolder, "DemoDiscGcReEx")
 tempNewAdditionsFolder = path.join(tempFolder, "NewAdditions")
-tempTPLFolder = path.join(demoFolder, "new tpl")
 
 contentArray = []
 
@@ -177,22 +175,37 @@ def prepareNewContent():
 	# else, do nothing (go back to menu)
 
 def removeContent():
-	print("Not yet implemented.")
-	sleep(0.5)
+	if len(contentArray) == 0:
+		print("\nThere is no content to remove.")
+		sleep(0.5)
+		return
+	choice = makeChoice("What would you like to remove?", [c[0]+" | "+c[1]+" | "+c[2] for c in contentArray])
+	try:
+		os.remove(path.join(demoDiscFolder, "root", contentArray[choice-1][2]))
+	except:
+		print("Demo file not found.")
+	try:
+		shutil.rmtree(path.join(demoDiscFolder, "root", contentArray[choice-1][1]))
+	except:
+		print("Demo folder not found.")
+	del contentArray[choice-1]
+	integrateFromContentArray()
+	print("Deleted content from disc.")
+	sleep(1)
 
 def buildDisc():
 	global contentArray
 
 	print("Maximum disc size: 1375.875 MB")
-	discSize = getDirSize(demoDiscFolder/1024.0/1024)
-	print("Disc space used: "+str(discSize)+" MB")
+	discSize = getDirSize(demoDiscFolder)/1024.0/1024
+	print("Disc space used: "+str(round(discSize, 3))+" MB")
 	if discSize > 1375.875:
 		print("\nThe contents of the extracted disc take up too much space.")
 		print("If you created a screen.tpl with more than one image, and you are only a few MB over the allocated space, you may want to manually open the TPL with a program like BrawlBox and change the format of each texture to CMPR (the default is RGB5A3, which takes up more space).")
 		input("Press Enter to continue.")
 		return
 	if len(contentArray) == 0:
-		print("You must add at least one game/movie to the disc before building.")
+		print("\nYou must add at least one game/movie to the disc before building.")
 		sleep(0.5)
 		input("Press Enter to continue.")
 		return
@@ -230,7 +243,7 @@ def askForTextures(isGame=True):
 	while True:
 		newScreen = []
 		newScreen = askopenfilenames(filetypes=[("Texture File", ".png .tpl .tex0 .bti .breft")])
-		if len(newScreen) = 0:
+		if len(newScreen) == 0:
 			newScreen = [path.join(defaultFolder, "template_screen.png")]
 		elif len(newScreen) > 4:
 			print("You can only select up to four images.")
@@ -357,6 +370,7 @@ def addNewContent(config_att, game, logo1, logo2, manual, screen, config_argumen
 		config_screenshot = "screen.tpl"
 		if path.splitext(screen[0])[1] != ".tpl":
 			print("Converting screen to TPL in demo folder...")
+			tempTPLFolder = path.join(demoFolder, "new tpl")
 			createDir(tempTPLFolder)
 			shutil.copy(s, path.join(tempTPLFolder, "image.png"))
 			for i in range(1, len(screen)):

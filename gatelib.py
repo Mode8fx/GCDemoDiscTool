@@ -425,7 +425,7 @@ def getFileExt(folder, fileName):
 """
 def getDirSize(startPath = '.'):
     totalSize = 0
-    for dirpath, dirnames, filenames in os.walk(start_Path):
+    for dirpath, dirnames, filenames in os.walk(startPath):
         for f in filenames:
             fp = os.path.join(dirpath, f)
             # skip if it is symbolic link
