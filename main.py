@@ -15,9 +15,11 @@ import subprocess
 """
 TODO LIST
 
-- Mild - Figure out how to create a texture with multiple pngs (for screen.tpl) through command line; as a temporary solution, only 1 image is currently allowed per TPL
-- Mild - logo sizes/positions may be wrong
-- Mild - Program does not account for file/disc size limitations
+- Moderate - Add the ability to remove content
+- Moderate - Finish GBA section
+- Mild - Clarify "asking for textures" prompts (saying it's okay if you don't choose a texture, as the default one will be used)
+- Mild - Figure out how to change the format of the second+onward texture in a TPL through command line
+- Meh - Logo sizes/positions may be wrong
 """
 
 ratingArray = ["RATING_PENDING", "EARLY_CHILDHOOD", "EVERYONE", "TEEN", "ADULTS_ONLY"]
@@ -33,10 +35,12 @@ defaultFolder = path.join(currFolder, "apps", "default files")
 tempFolder = path.join(currFolder, "temp")
 tempDemoDiscFolder = path.join(tempFolder, "DemoDiscGcReEx")
 tempNewAdditionsFolder = path.join(tempFolder, "NewAdditions")
+tempTPLFolder = path.join(demoFolder, "new tpl")
 
-originalContentArray = []
+contentArray = []
 
 def main():
+	Tk().withdraw()
 	initTempFolder()
 	manageDemoDisc()
 	while True:
@@ -73,7 +77,6 @@ def manageDemoDisc():
 	sleep(0.5)
 	sourceDemoDisc = ""
 	while sourceDemoDisc == "":
-		Tk().withdraw()
 		sourceDemoDisc = askopenfilename(filetypes=[("Gamecube Demo Discs", ".iso .gcm")])
 	subprocess.call('\"'+gcit+'\" \"'+sourceDemoDisc+'\" -q -f gcreex -d \"'+tempDemoDiscFolder+'\"')
 	demoDiscFolder = path.join(tempDemoDiscFolder, listdir(tempDemoDiscFolder)[0])
@@ -89,9 +92,9 @@ def manageDemoDisc():
 		sys.exit()
 
 def setOriginalContents():
-	global originalContentArray
+	global contentArray
 
-	originalContentArray = []
+	contentArray = []
 	if not path.isfile(contentsFile):
 		print("Default contents.txt not found. Creating new file.")
 		cFile = open(contentsFile, "w")
@@ -108,15 +111,14 @@ def setOriginalContents():
 			for s in sl:
 				if s.strip() != "":
 					splitLine.append(s.strip())
-			originalContentArray.append(splitLine)
+			contentArray.append(splitLine)
 	cFile.close()
 
 def prepareNewContent():
-	choice = makeChoice("Which type of content would you like to add?", ["Gamecube ISO/GCM/TGC File", "GBA ROM (for transfer to GBA)", "NES ROM (for transfer to GBA)", "Video", "Go Back"])
+	choice = makeChoice("Which type of content would you like to add?", ["Gamecube ISO/GCM/TGC File", "GBA ROM (for use in official emulator)", "GBA ROM (for transfer to GBA)", "Go Back"])
 	if choice == 1:
 		print("\nPlease select a Gamecube ISO/GCM/TGC File.")
 		sleep(0.5)
-		Tk().withdraw()
 		newGCGame = askopenfilename(filetypes=[("Gamecube Game File", ".iso .gcm .tgc")])
 		if newGCGame == "":
 			print("Action cancelled.")
@@ -130,13 +132,31 @@ def prepareNewContent():
 	elif choice == 2:
 		print("\nPlease select a GBA ROM File.")
 		sleep(0.5)
-		Tk().withdraw()
 		newGBAGame = askopenfilename(filetypes=[("GBA ROM File", ".gba .bin")])
 		if newGBAGame == "":
 			print("Action cancelled.")
 			sleep(0.5)
 		else:
-			size = os.stat(newGBAGame).st_size
+			size = os.path.getsize(newGBAGame)
+			if size > 16777216:
+				print("This file is too big. Maximum size for GBA ROM in official emulator is 16 MB.")
+				newGBAGame = ""
+				sleep(0.5)
+			else:
+				print("Done.")
+				sleep(0.5)
+				newLogo, newLogo2, newManual, newScreen = askForTextures(True)
+				memcard, timer, forcereset, rating, autorunProb, argument = askForSettings(True)
+				addNewContent("<GAME>", newGCGame, newLogo, newLogo2, newManual, newScreen, argument, memcard, timer, forcereset, rating, autorunProb, isEmulatedGBA=True)
+	elif choice == 3:
+		print("\nPlease select a GBA ROM File.")
+		sleep(0.5)
+		newGBAGame = askopenfilename(filetypes=[("GBA ROM File", ".gba .bin")])
+		if newGBAGame == "":
+			print("Action cancelled.")
+			sleep(0.5)
+		else:
+			size = os.path.getsize(newGBAGame)
 			if size > 262144:
 				print("This file is too big. Maximum size for GBA transfer is 256 KB.")
 				newGBAGame = ""
@@ -147,12 +167,6 @@ def prepareNewContent():
 				newLogo, newLogo2, newManual, newScreen = askForTextures(True)
 				memcard, timer, forcereset, rating, autorunProb, _ = askForSettings(False)
 				addNewContent("<GAME>", newGCGame, newLogo, newLogo2, newManual, newScreen, "file://"+path.basename(newGCGame), memcard, timer, forcereset, rating, autorunProb)
-	elif choice == 3:
-		print("Not yet supported.")
-		sleep(0.5)
-	elif choice == 4:
-		print("Not yet supported.")
-		sleep(0.5)
 	# else, do nothing (go back to menu)
 
 def removeContent():
@@ -160,16 +174,30 @@ def removeContent():
 	sleep(0.5)
 
 def buildDisc():
-	global originalContentArray
+	global contentArray
 
-	if len(originalContentArray) < 5:
+	print("Maximum disc size: 1375.875 MB")
+	discSize = getSize(demoDiscFolder/1024.0/1024)
+	print("Disc space used: "+str(discSize)+" MB")
+	if discSize > 1375.875:
+		print("\nThe contents of the extracted disc take up too much space.")
+		print("If you created a screen.tpl with more than one image, and you are only a few MB over the allocated space, you may want to manually open the TPL with a program like BrawlBox and change the format of each texture to CMPR (the default is RGB5A3, which takes up more space).")
+		input("Press Enter to continue.")
+		return
+	if len(contentArray) == 0:
+		print("You must add at least one game/movie to the disc before building.")
+		sleep(0.5)
+		input("Press Enter to continue.")
+		return
+	if len(contentArray) < 5:
 		choice = makeChoice("You have fewer than 5 games/movies. To prevent unintended visual bugs, would you like to duplicate menu options? This will not take up any additional space.", ["Yes (Recommended)", "No"])
 		if choice == 1:
-			originalOriginalContentArray = copy(originalContentArray)
-			while len(originalContentArray) < 5:
-				originalContentArray += originalOriginalContentArray
+			originalContentArray = copy(contentArray)
+			while len(contentArray) < 5:
+				contentArray += originalContentArray
 			integrateFromContentArray()
-	print("\nThis will build the contents of the extracted disc into a new ISO.\nIf you would like to manually change any contents (for example, the order of content on the menu in \"/temp/DemoDiscGcReEx/YOURDEMODISC/root/config_e/contents.txt\"), do so now.")
+	print("\nThis will build the contents of the extracted disc into a new ISO.")
+	print("If you would like to manually change any contents (for example, the order of content on the menu in \"/temp/DemoDiscGcReEx/YOURDEMODISC/root/config_e/contents.txt\"), do so now.")
 	choice = makeChoice("Continue?", ["Yes", "No", "Exit"])
 	if choice == 2:
 		return
@@ -190,28 +218,31 @@ def askForTextures(isGame=True):
 	newManual = askForFile("Select Manual. This is the image/texture file of the controls screen, displayed after selecting a game. (Recommended size: 640x480)",
 		[("Texture File", ".png .tpl .tex0 .bti .breft")], path.join(defaultFolder, "template_manual.png"), "Skipped Manual.")
 
-	newScreen = askForFile("Select Screen. This is the texture file containing up to four image(s) shown on the menu. (Recommended size: 340x270 for earlier discs (they show the screenshot in a smaller window), or 640x480 for later discs (the entire background changes depending on the game))",
-		[("Texture File", ".png .tpl .tex0 .bti .breft")], path.join(defaultFolder, "template_screen.png"), "Skipped Screen.")
-	# print("\nSelect Screen. This is the texture file containing up to four image(s) shown on the menu. (Recommended size: 340x270 for earlier discs, or 640x480 for later discs)")
-	# sleep(0.5)
-	# while True:
-	# 	breakOut = True
-	# 	Tk().withdraw()
-	# 	newScreen = []
-	# 	newScreen = askopenfilenames(filetypes=[("Texture File", ".png .tpl .tex0 .bti .breft")])
-	# 	if newScreen == []:
-	# 		print("Skipped Screen.")
-	# 	elif len(newScreen) > 4:
-	# 		print("You can only select up to four images.")
-	# 		breakOut = False
-	# 	elif len(newScreen) > 1 and ".tpl" in [path.splitext(s)[1] for s in newScreen]:
-	# 		print("Do not select more than 1 TPL file at a time.")
-	# 		breakOut = False
-	# 	else:
-	# 		print("Done.")
-	# 	sleep(0.5)
-	# 	if breakOut:
-	# 		break
+	# newScreen = askForFile("Select Screen. This is the texture file containing up to four image(s) shown on the menu. (Recommended size: 340x270 for earlier discs (they show the screenshot in a smaller window), or 640x480 for later discs (the entire background changes depending on the game))",
+	# 	[("Texture File", ".png .tpl .tex0 .bti .breft")], path.join(defaultFolder, "template_screen.png"), "Skipped Screen.")
+	print("\nSelect Screen. This is the texture file containing up to four image(s) shown on the menu. (Recommended size: 340x270 for earlier discs (they show the screenshot in a smaller window), or 640x480 for later discs (the entire background changes depending on the game))")
+	sleep(0.5)
+	while True:
+		newScreen = []
+		newScreen = askopenfilenames(filetypes=[("Texture File", ".png .tpl .tex0 .bti .breft")])
+		if len(newScreen) = 0:
+			newScreen = [path.join(defaultFolder, "template_screen.png")]
+		elif len(newScreen) > 4:
+			print("You can only select up to four images.")
+			continue
+		elif len(newScreen) > 1 and ".tpl" in [path.splitext(s)[1] for s in newScreen]:
+			print("Do not select more than 1 TPL file at a time.")
+			continue
+		passed = True
+		for screen in newScreen:
+			if not path.isfile(screen):
+				print("\""+screen+"\" not found.")
+				print("Skipped screen.")
+				passed = False
+				break
+		if passed:
+			print("Done.")
+		break
 
 	return newLogo1, newLogo2, newManual, newScreen
 
@@ -234,7 +265,6 @@ def askForSettings(askForArgument=False):
 def askForFile(description, fTypes, defaultFile, skipText):
 	print("\n"+description)
 	sleep(0.5)
-	Tk().withdraw()
 	file = askopenfilename(filetypes=fTypes)
 	if file == "":
 		file = defaultFile
@@ -246,8 +276,11 @@ def askForFile(description, fTypes, defaultFile, skipText):
 	sleep(0.5)
 	return file
 
-def addNewContent(config_att, game, logo1, logo2, manual, screen, config_argument, config_memcard, config_timer, config_forcereset, config_rating, config_autorunProb):
-	global originalContentArray
+def addNewContent(config_att, game, logo1, logo2, manual, screen, config_argument, config_memcard, config_timer, config_forcereset, config_rating, config_autorunProb, isEmulatedGBA=False):
+	global contentArray
+
+	# If the game is a GBA ROM, package and convert it to an ISO
+	# if isEmulatedGBA...
 
 	# Convert the game to TGC (if necessary) then rename+move it to the disc
 	print("\nCopying game file to temp folder...")
@@ -274,54 +307,57 @@ def addNewContent(config_att, game, logo1, logo2, manual, screen, config_argumen
 	# Convert logo1 to TPL (if necessary) then rename+move it to demo folder
 	if logo1 != "":
 		if path.splitext(logo1)[1] != ".tpl":
-			print("Converting Logo 1 to TPL...")
-			subprocess.call('\"'+wimgt+'\" ENCODE \"'+logo1+'\" -d \"'+path.join(demoFolder, "logo.tpl")+'\" -x TPL')
+			print("Converting logo to TPL...")
+			subprocess.call('\"'+wimgt+'\" ENCODE \"'+logo1+'\" -d \"'+path.join(demoFolder, "logo.tpl")+'\" -x CMPR')
 		else:
 			shutil.copy(logo1, path.join(demoFolder, "logo.tpl"))
-		logo1 = path.join(demoFolder, "logo.tpl")
-		print("Moving logo.tpl to demo folder...")
-		os.rename(logo1, path.join(demoFolder, "logo.tpl"))
 	# Convert logo2 to TPL (if necessary) then rename+move it to demo folder
 	if logo2 != "":
 		if path.splitext(logo2)[1] != ".tpl":
-			print("Converting Logo 1 to TPL...")
-			subprocess.call('\"'+wimgt+'\" ENCODE \"'+logo2+'\" -d \"'+path.join(demoFolder, "logo2.tpl")+'\" -x TPL')
+			print("Converting logo2 to TPL...")
+			subprocess.call('\"'+wimgt+'\" ENCODE \"'+logo2+'\" -d \"'+path.join(demoFolder, "logo2.tpl")+'\" -x CMPR')
 		else:
 			shutil.copy(logo2, path.join(demoFolder, "logo2.tpl"))
-		logo2 = path.join(demoFolder, "logo2.tpl")
-		print("Moving logo2.tpl to demo folder...")
-		os.rename(logo2, path.join(demoFolder, "logo2.tpl"))
 	# Convert manual to TPL (if necessary) then rename+move it to demo folder
 	if manual != "":
 		if path.splitext(manual)[1] != ".tpl":
-			print("Converting Logo 1 to TPL...")
-			subprocess.call('\"'+wimgt+'\" ENCODE \"'+manual+'\" -d \"'+path.join(demoFolder, "manual.tpl")+'\" -x TPL')
+			print("Converting manual to TPL...")
+			subprocess.call('\"'+wimgt+'\" ENCODE \"'+manual+'\" -d \"'+path.join(demoFolder, "manual.tpl")+'\" -x CMPR')
 		else:
 			shutil.copy(manual, path.join(demoFolder, "manual.tpl"))
-		manual = path.join(demoFolder, "manual.tpl")
-		print("Moving manual.tpl to demo folder...")
-		os.rename(manual, path.join(demoFolder, "manual.tpl"))
 	# Convert screen to TPL (if necessary) then rename+move it to demo folder
-	config_screenshot = ""
-	if screen != "":
+	config_screenshot ="NULL"
+	if len(screen) > 0:
 		config_screenshot = "screen.tpl"
-		if path.splitext(screen)[1] != ".tpl":
-			print("Converting Logo 1 to TPL...")
-			subprocess.call('\"'+wimgt+'\" ENCODE \"'+screen+'\" -d \"'+path.join(demoFolder, "screen.tpl")+'\" -x TPL')
+		if path.splitext(screen[0])[1] != ".tpl":
+			print("Converting screen to TPL in demo folder...")
+			createDir(tempTPLFolder)
+			shutil.copy(s, path.join(tempTPLFolder, "image.png"))
+			for i in range(1, len(screen)):
+				shutil.copy(screen[i], path.join(tempTPLFolder, "image.mm"+str(i)+".png"))
+			subprocess.call('\"'+wimgt+'\" ENCODE \"'+path.join(tempTPLFolder, "image.png")+'\" -d \"'+path.join(demoFolder, "screen.tpl")+'\" -x CMPR') # TODO: Account for multiple screenshots here (right now it ignores anything after the first)
+			shutil.rmtree(tempTPLFolder)
 		else:
-			shutil.copy(screen, path.join(demoFolder, "screen.tpl"))
-		screen = path.join(demoFolder, "screen.tpl")
-		print("Moving screen.tpl to demo folder...")
-		os.rename(screen, path.join(demoFolder, "screen.tpl"))
-	# Copy appropriate config file to demo folder
+			shutil.copy(screen[0], path.join(demoFolder, "screen.tpl"))
+	# Create appropriate config file in demo folder
+	localConfFile = open(path.join(demoFolder, "local_conf.txt"), "w")
+	localConfFile.writelines("<ANIMATION_FRAMES> "+str(len(screen))+"\n")
+	localConfFile.writelines("<ANIMATION_INTERVAL> 120\n")
+	localConfFile.writelines("<ANIMATION_SWITCHING_INTERVAL> 30\n")
+	localConfFile.writelines("<ANIMATION_TYPE> FADE_IN\n")
 	if config_rating == "RATING_PENDING":
-		shutil.copy(path.join(defaultFolder, "local_conf rating pending.txt"), path.join(demoFolder, "local_conf.txt"))
+		localConfFile.writelines("<RATING_INSERTION_TIME> 4\n")
+		localConfFile.writelines("<RATING_INSERTION_POS> -113 58\n")
+		localConfFile.writelines("<RATING_INSERTION_SIZE> 226 106\n")
 	else:
-		shutil.copy(path.join(defaultFolder, "local_conf normal.txt"), path.join(demoFolder, "local_conf.txt"))
+		localConfFile.writelines("<RATING_INSERTION_POS> -79 110\n")
+		localConfFile.writelines("<RATING_INSERTION_SIZE> 158 221\n")
+	localConfFile.writelines("<END>\n")
+	localConfFile.close()
 	# Move demo folder to disc
 	shutil.move(demoFolder, path.join(demoDiscFolder, "root", config_folder))
-	# Update originalContentArray and integrate config file
-	originalContentArray.append([config_att, config_folder, config_filename, config_argument, config_screenshot, config_memcard, str(config_timer), config_forcereset, config_rating, str(config_autorunProb)])
+	# Update contentArray and integrate config file
+	contentArray.append([config_att, config_folder, config_filename, config_argument, config_screenshot, config_memcard, str(config_timer), config_forcereset, config_rating, str(config_autorunProb)])
 	integrateFromContentArray()
 	print("\nAdded new content to extracted disc.")
 	sleep(0.5)
@@ -330,7 +366,7 @@ def integrateFromContentArray():
 	# newLine = config_att+"\t"+config_folder+"\t"+config_filename+"\t"+config_argument+"\t"+config_screenshot+"\t"+config_memcard+"\t"+str(config_timer)+"\t"+config_forcereset+"\t"+config_rating+"\t"+str(config_autorunProb)+"\n"
 	cFile = open(contentsFile, "w")
 	cFile.writelines("#att	folder			tgc_filename			argument screenshot	memcard	timer	forcereset 	rating	autorun_porbability\n")
-	for content in originalContentArray:
+	for content in contentArray:
 		cFile.writelines("\t".join(c for c in content)+"\n")
 	cFile.writelines("<END>\n")
 	cFile.close()
@@ -349,12 +385,12 @@ def integrateFromContentArray():
 
 def printOriginalContents(printHeader=True):
 	print("\nCurrent demo disc contents:")
-	if len(originalContentArray) == 0:
+	if len(contentArray) == 0:
 		print("None")
 	else:
 		if printHeader:
 			print("TYPE    FOLDER                        FILENAME                      ARGUMENT                      MEMCARD   TIMER   ESRB RATING      AUTORUN PROB.")
-		for content in originalContentArray:
+		for content in contentArray:
 			print(content[0].ljust(8)+content[1].ljust(30)+content[2].ljust(30)+content[3].ljust(30)+content[5].ljust(10)+content[6].ljust(8)+content[8].ljust(17)+content[9])
 
 def printHelpContents():

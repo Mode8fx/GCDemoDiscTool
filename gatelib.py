@@ -396,7 +396,8 @@ def getCurrFolder():
 	fileName : str
 		The given file name.
 
-	Returns:
+	Returns
+	-------
 	str
 		The file extension (including the ".") of the first file found in folder named fileName (with any extension); if no file with that name is found, return an empty string.
 """
@@ -406,6 +407,31 @@ def getFileExt(folder, fileName):
 		if fName == fileName:
 			return fExt
 	return ""
+
+"""
+	From https://stackoverflow.com/questions/1392413/calculating-a-directorys-size-using-python
+
+	Returns the total number of bytes taken up by the given directory and its subdirectories.
+
+	Parameters
+	----------
+	startPath : str
+		The given directory.
+
+	Returns
+	-------
+	int
+		The number of bytes taken up by the directory.
+"""
+def getSize(startPath = '.'):
+    totalSize = 0
+    for dirpath, dirnames, filenames in os.walk(start_Path):
+        for f in filenames:
+            fp = os.path.join(dirpath, f)
+            # skip if it is symbolic link
+            if not os.path.islink(fp):
+                totalSize += os.path.getsize(fp)
+    return totalSize
 
 ####################
 # ARRAY MANAGEMENT #
