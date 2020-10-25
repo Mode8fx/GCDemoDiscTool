@@ -7,18 +7,19 @@ import re
 from copy import copy
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename, askopenfilenames
-from gatelib import *
 import subprocess
+from getpass import getpass as inputHidden
+from gatelib import *
 
 # max total content size excluding the actual demo disc: approx. 1,442,709,504 bytes; 1,408,896 KB; 1375.875 MB; 1.3436 GB
 
 """
 TODO LIST
 
-- Moderate - Finish GBA section
 - Moderate - Change disc settings (time before autoplay, etc)
-- Mild - Change game header
-- Mild - Clarify "asking for textures" prompts (saying it's okay if you don't choose a texture, as the default one will be used)
+- Moderate - Change game header
+- Mild - Add NES injection using existing app
+- Mild - Add N64 injection using existing app
 - Mild - Figure out how to change the format of the second+onward texture in a TPL through command line
 - Meh - Logo sizes/positions may be wrong
 """
@@ -34,6 +35,7 @@ outputFolder = path.join(currFolder, "output")
 defaultFolder = path.join(currFolder, "apps", "default files")
 gbaTransferInjector = path.join(currFolder, "apps", "GCGBA_ti.py")
 gbaTransferFile = path.join(currFolder, "apps", "wario_agb.tgc")
+gbaEmulatorInjector = path.join(currFolder, "apps", "GCGBA_ei.py")
 gbaEmulatorFile1 = path.join(currFolder, "apps", "zz_MarioVSDonkey_game.tgc")
 gbaEmulatorFile2 = path.join(currFolder, "apps", "zz_MarioPinballLand_game.tgc")
 
@@ -119,6 +121,8 @@ def setOriginalContents():
 	cFile.close()
 
 def prepareNewContent():
+	global gbaEmulatorFile
+
 	choice = makeChoice("Which type of content would you like to add?", ["Gamecube ISO/GCM/TGC File", "GBA ROM (for use in official emulator)", "GBA ROM (for transfer to GBA)", "Go Back"])
 	if choice == 1:
 		print("\nPlease select a Gamecube ISO/GCM/TGC File.")
@@ -134,6 +138,14 @@ def prepareNewContent():
 			memcard, timer, forcereset, rating, autorunProb, argument = askForSettings(True)
 			addNewContent("<GAME>", newGCGame, newLogo, newLogo2, newManual, newScreen, argument, memcard, timer, forcereset, rating, autorunProb)
 	elif choice == 2:
+		if path.exists(gbaEmulatorFile1):
+			gbaEmulatorFile = gbaEmulatorFile1
+		elif path.exists(gbaEmulatorFile2):
+			gbaEmulatorFile = gbaEmulatorFile2
+		else:
+			print("GBA emulator file not found. For more information, read '/apps/PUT MvDK OR MPL DEMO HERE.txt'")
+			sleep(0.5)
+			inputHidden("Action cancelled. Press Enter to continue.")
 		print("\nPlease select a GBA ROM File.")
 		sleep(0.5)
 		newGBAGame = askopenfilename(filetypes=[("GBA ROM File", ".gba .bin")])
@@ -151,8 +163,17 @@ def prepareNewContent():
 				sleep(0.5)
 				newLogo, newLogo2, newManual, newScreen = askForTextures(True)
 				memcard, timer, forcereset, rating, autorunProb, argument = askForSettings(True)
-				addNewContent("<GAME>", newGCGame, newLogo, newLogo2, newManual, newScreen, argument, memcard, timer, forcereset, rating, autorunProb, isEmulatedGBA=True)
+				f_02 = ""
+				choice = makeChoice("Would you like to add a custom overlay to the GBA emulator app or use the existing overlay?", ["Add new overlay", "Keep current overlay"])
+				if choice == 1:
+					f_02 = askForFile("Select the Overlay. This is the image/texture file of the overlay surrounding the game.\nIf you do not select a texture, the current texture will be used.\n(Recommended size: 608x448)",
+						[("Texture File", ".png .tpl .tex0 .bti .breft")], "", "Skipped Overlay.")
+				addNewContent("<GAME>", newGCGame, newLogo, newLogo2, newManual, newScreen, argument, memcard, timer, forcereset, rating, autorunProb, isEmulatedGBA=True, gbaOverlay=f_02)
 	elif choice == 3:
+		if not path.exists(gbaTransferFile):
+			print("GBA transfer file not found. For more information, read '/apps/PUT wario_agb.tgc HERE.txt'")
+			sleep(0.5)
+			inputHidden("Action cancelled. Press Enter to continue.")
 		print("\nPlease select a GBA ROM File.")
 		sleep(0.5)
 		newGBAGame = askopenfilename(filetypes=[("GBA ROM File", ".gba .bin")])
@@ -202,12 +223,12 @@ def buildDisc():
 	if discSize > 1375.875:
 		print("\nThe contents of the extracted disc take up too much space.")
 		print("If you created a screen.tpl with more than one image, and you are only a few MB over the allocated space, you may want to manually open the TPL with a program like BrawlBox and change the format of each texture to CMPR (the default is RGB5A3, which takes up more space).")
-		input("Press Enter to continue.")
+		inputHidden("Press Enter to continue.")
 		return
 	if len(contentArray) == 0:
 		print("\nYou must add at least one game/movie to the disc before building.")
 		sleep(0.5)
-		input("Press Enter to continue.")
+		inputHidden("Press Enter to continue.")
 		return
 	if len(contentArray) < 5:
 		choice = makeChoice("You have fewer than 5 games/movies. To prevent unintended visual bugs, would you like to duplicate menu options? This will not take up any additional space.", ["Yes (Recommended)", "No"])
@@ -225,20 +246,22 @@ def buildDisc():
 		sys.exit()
 	createDir(outputFolder)
 	while len(listdir(outputFolder)) > 0:
-		input("A file already exists in "+outputFolder+". Please move, rename, or delete this file.\nPress Enter to continue.")
+		print("A file already exists in "+outputFolder+". Please move, rename, or delete this file.")
+		inputHidden("Press Enter to continue.")
 	subprocess.call('\"'+gcit+'\" \"'+demoDiscFolder+'\" -q -d \"'+path.join(outputFolder, "output.iso")) # the name doesn't matter; gcit.exe forces a name
-	input("\nCreated new ISO in "+outputFolder+".\nPress Enter to exit.")
+	input("\nCreated new ISO in "+outputFolder+".")
+	inputHidden("Press Enter to exit.")
 	sys.exit()
 
 def askForTextures(isGame=True):
-	newLogo1 = askForFile("Select Logo 1. This is the menu icon when the content is not highlighted. (Recommended size: 267x89)",
+	newLogo1 = askForFile("Select Logo 1. This is the menu icon when the content is not highlighted.\nIf you do not select a texture, a default single-color texture will be used.\n(Recommended size: 267x89)",
 		[("Texture File", ".png .tpl .tex0 .bti .breft")], path.join(defaultFolder, "template_logo.png"), "Skipped Logo 1.")
-	newLogo2 = askForFile("Select Logo 2. This is the menu icon when the content is highlighted. (Recommended size: 267x89)",
+	newLogo2 = askForFile("Select Logo 2. This is the menu icon when the content is highlighted.\nIf you do not select a texture, a default single-color texture will be used.\n(Recommended size: 267x89)",
 		[("Texture File", ".png .tpl .tex0 .bti .breft")], path.join(defaultFolder, "template_logo2.png"), "Skipped Logo 2.")
-	newManual = askForFile("Select Manual. This is the image/texture file of the controls screen, displayed after selecting a game. (Recommended size: 640x480)",
+	newManual = askForFile("Select Manual. This is the image/texture file of the controls screen, displayed after selecting a game.\nIf you do not select a texture, a default single-color texture will be used.\n(Recommended size: 640x480)",
 		[("Texture File", ".png .tpl .tex0 .bti .breft")], path.join(defaultFolder, "template_manual.png"), "Skipped Manual.")
 
-	print("\nSelect Screen. This is the texture file containing up to four image(s) shown on the menu. (Recommended size: 340x270 for earlier discs (they show the screenshot in a smaller window), or 640x480 for later discs (the entire background changes depending on the game))")
+	print("\nSelect Screen. This is the texture file containing up to four image(s) shown on the menu.\nIf you do not select a texture, a default single-color texture will be used.\n(Recommended size: 340x270 for earlier discs (they show the screenshot in a smaller window), or 640x480 for most discs (the entire background changes depending on the game))")
 	sleep(0.5)
 	while True:
 		newScreen = []
@@ -268,13 +291,13 @@ def askForGBATransferTextures():
 	choice = makeChoice("Would you like to add custom textures to the GBA transfer app or use the existing textures?", ["Add new textures", "Keep current textures"])
 	if choice == 2:
 		return "", "", "", ""
-	err = askForFile("Select the Error Screen. This is the image/texture file of the pre-transfer screen (telling you to plug in your GBA). (Recommended size: 640x480)",
+	err = askForFile("Select the Error Screen. This is the image/texture file of the pre-transfer screen (telling you to plug in your GBA).\nIf you do not select a texture, the current texture will be used.\n(Recommended size: 640x480)",
 		[("Texture File", ".png .tpl .tex0 .bti .breft")], "", "Skipped Error Screen.")
-	load = askForFile("Select Loading Screen. This is the image/texture file displayed during the transfer. (Recommended size: 640x480)",
+	load = askForFile("Select Loading Screen. This is the image/texture file displayed during the transfer.\nIf you do not select a texture, the current texture will be used.\n(Recommended size: 640x480)",
 		[("Texture File", ".png .tpl .tex0 .bti .breft")], "", "Skipped Loading Screen.")
-	ind = askForFile("Select Indicator Icon. This is the image/texture file of the icon that appears in the progress bar (like a dot or pill). (Recommended size: 30x28)",
+	ind = askForFile("Select Indicator Icon. This is the image/texture file of the icon that appears in the progress bar (like a dot or pill).\nIf you do not select a texture, the current texture will be used.\n(Recommended size: 30x28)",
 		[("Texture File", ".png .tpl .tex0 .bti .breft")], "", "Skipped Indicator Icon.")
-	done = askForFile("Select Completed Screen. This is the image/texture file displayed when a transfer finishes. (Recommended size: 640x480)",
+	done = askForFile("Select Completed Screen. This is the image/texture file displayed when a transfer finishes.\nIf you do not select a texture, the current texture will be used.\n(Recommended size: 640x480)",
 		[("Texture File", ".png .tpl .tex0 .bti .breft")], "", "Skipped Completed Screen.")
 	return err, load, ind, done
 
@@ -309,18 +332,32 @@ def askForFile(description, fTypes, defaultFile, skipText):
 	sleep(0.5)
 	return file
 
-def addNewContent(config_att, game, logo1, logo2, manual, screen, config_argument, config_memcard, config_timer, config_forcereset, config_rating, config_autorunProb, isEmulatedGBA=False):
+def addNewContent(config_att, game, logo1, logo2, manual, screen, config_argument, config_memcard, config_timer, config_forcereset, config_rating, config_autorunProb, isEmulatedGBA=False, gbaErr="", gbaLoad="", gbaInd="", gbaDone="", gbaOverlay=""):
 	global contentArray
 
-	# If the game is a GBA ROM, package and convert it to an ISO
+	# If the game is a GBA ROM, package and convert it to an ISO using the appropriate method
 	if path.splitext(game)[1] == ".gba":
 		if not isEmulatedGBA:
-			subprocess.call('\"'+gbaTransferInjector+'\" -a \"'+game+'\" -c \"'+gbaTransferFile+'\"')
+			gbaErrStr = ""
+			if gbaErr != "":
+				gbaErrStr = " --err \""+gbaErr+"\""
+			gbaLoadStr = ""
+			if gbaLoad != "":
+				gbaLoadStr = " --load \""+gbaLoad+"\""
+			gbaIndStr = ""
+			if gbaInd != "":
+				gbaIndStr = " --ind \""+gbaInd+"\""
+			gbaDoneStr = ""
+			if gbaDone != "":
+				gbaDoneStr = " --done \""+gbaDone+"\""
+			subprocess.call('\"'+gbaTransferInjector+'\" -a \"'+game+'\" -c \"'+gbaTransferFile+'\"'+gbaErrStr+gbaLoadStr+gbaIndStr+gbaDoneStr)
 			game = path.join(currFolder, "apps", "output", listdir(path.join(currFolder, "apps", "output"))[0])
 		else:
-			# TODO: add GBA emulator inject
-			print("NOT YET IMPLEMENTED")
-			return
+			gbaOverlayStr = ""
+			if gbaOverlay != "":
+				gbaOverlayStr = " -t \""+gbaOverlay+"\""
+			subprocess.call('\"'+gbaEmulatorInjector+'\" -a \"'+game+'\" -c \"'+gbaEmulatorFile+'\"'+gbaOverlayStr)
+			game = path.join(currFolder, "apps", "output", listdir(path.join(currFolder, "apps", "output"))[0])
 	# Convert the game to TGC (if necessary) then rename+move it to the disc
 	print("\nCopying game file to temp folder...")
 	oldGame = game
@@ -447,7 +484,7 @@ def printHelpContents():
 	print("\nESRB RATING   - The ESRB rating")
 	print("\nAUTORUN PROB. - The frequency of this content auto-playing if no buttons are pressed on the menu;")
 	print("                  0 (never; recommended for games) through 5 (often; recommended for movies)")
-	input("\nPress Enter to continue.")
+	inputHidden("\nPress Enter to continue.")
 
 if __name__ == '__main__':
 	main()

@@ -59,10 +59,6 @@ def main(argv):
 		os.remove(gcFile)
 		gcFile = path.splitext(gcFile)[0]+".gcm"
 	# Extract the Gamecube file
-	print("HEY")
-	print(gcit)
-	print(gcFile)
-	print(tempGCFolder)
 	subprocess.call('\"'+gcit+'\" \"'+gcFile+'\" -q -f gcreex -d \"'+tempGCFolder+'\"')
 	gcFolder = path.join(tempGCFolder, listdir(tempGCFolder)[0])
 	# Copy over the GBA ROM
@@ -111,7 +107,7 @@ def initTempFolder():
 	mkdir(tempGCFolder)
 
 def printHelp():
-	print("\nUsage: GCGBA_ti.exe -a <input GBA> -c <input GC> --done <TPL> --err <TPL> --ind <TPL> --load <TPL>")
+	print("\nUsage: GCGBA_ti.exe -a <input GBA> -c <input GC> --err <TPL> --load <TPL> --ind <TPL> --done <TPL>")
 	print()
 	print("-a <the GBA ROM that will be injected>")
 	print("-c <the Gamecube file that the GBA ROM will be injected into; this is wario_agb.tgc, which can be extracted from the Nintendo Gamecube Preview Disc>")
