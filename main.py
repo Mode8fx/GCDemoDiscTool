@@ -11,19 +11,6 @@ import subprocess
 from getpass import getpass as inputHidden
 from gatelib import *
 
-# max total content size excluding the actual demo disc: approx. 1,442,709,504 bytes; 1,408,896 KB; 1375.875 MB; 1.3436 GB
-
-"""
-TODO LIST
-
-- Moderate - Change disc settings (time before autoplay, etc)
-- Moderate - Change game header
-- Mild - Add NES injection using existing app
-- Mild - Add N64 injection using existing app
-- Mild - Figure out how to change the format of the second+onward texture in a TPL through command line
-- Meh - Logo sizes/positions may be wrong
-"""
-
 ratingArray = ["RATING_PENDING", "EARLY_CHILDHOOD", "EVERYONE", "TEEN", "ADULTS_ONLY"]
 
 currFolder = getCurrFolder()
@@ -45,6 +32,9 @@ tempNewAdditionsFolder = path.join(tempFolder, "NewAdditions")
 
 contentArray = []
 
+inputSleep = 0.5
+msgSleep = 1
+
 def main():
 	Tk().withdraw()
 	initTempFolder()
@@ -53,7 +43,7 @@ def main():
 		clearScreen()
 		setOriginalContents()
 		printOriginalContents()
-		choice = makeChoice("What would you like to do?", ["Add content to disc", "Remove content from disc", "Build disc", "Help (Contents)", "Exit"])
+		choice = makeChoice("What would you like to do?", ["Add content to disc", "Remove content from disc", "Build disc", "Change disc settings", "Help (Contents)", "Exit"])
 		if choice == 1:
 			prepareNewContent()
 		elif choice == 2:
@@ -61,6 +51,8 @@ def main():
 		elif choice == 3:
 			buildDisc()
 		elif choice == 4:
+			changeSettings()
+		elif choice == 5:
 			printHelpContents()
 		else:
 			sys.exit()
@@ -80,7 +72,7 @@ def manageDemoDisc():
 
 	clearScreen()
 	print("\nPlease select a Gamecube Interactive Multi-Game Demo Disc. Version 10 and later should work, but earlier discs may work, too (they are untested).")
-	sleep(0.5)
+	sleep(msgSleep)
 	sourceDemoDisc = ""
 	while sourceDemoDisc == "":
 		sourceDemoDisc = askopenfilename(filetypes=[("Gamecube Demo Discs", ".iso .gcm")])
@@ -91,10 +83,10 @@ def manageDemoDisc():
 	integratedFile = path.join(demoDiscFolder, "root", "integrated.txt")
 	if path.isfile(integrateExe):
 		print("\nValid demo disc.")
-		sleep(0.5)
+		sleep(msgSleep)
 	else:
 		print("\nInvalid disc. Quitting.")
-		sleep(0.5)
+		sleep(msgSleep)
 		sys.exit()
 
 def setOriginalContents():
@@ -123,17 +115,18 @@ def setOriginalContents():
 def prepareNewContent():
 	global gbaEmulatorFile
 
-	choice = makeChoice("Which type of content would you like to add?", ["Gamecube ISO/GCM/TGC File", "GBA ROM (for use in official emulator)", "GBA ROM (for transfer to GBA)", "Go Back"])
+	choice = makeChoice("Which type of content would you like to add?",
+		["Gamecube ISO/GCM/TGC File", "GBA ROM (for use in official emulator)", "GBA ROM (for transfer to GBA)", "N64 ROM (for use in official emulator)", "Go Back"])
 	if choice == 1:
 		print("\nPlease select a Gamecube ISO/GCM/TGC File.")
-		sleep(0.5)
+		sleep(msgSleep)
 		newGCGame = askopenfilename(filetypes=[("Gamecube Game File", ".iso .gcm .tgc")])
 		if newGCGame == "":
 			print("Action cancelled.")
-			sleep(0.5)
+			sleep(msgSleep)
 		else:
 			print("Done.")
-			sleep(0.5)
+			sleep(msgSleep)
 			newLogo, newLogo2, newManual, newScreen = askForTextures(True)
 			memcard, timer, forcereset, rating, autorunProb, argument = askForSettings(True)
 			addNewContent("<GAME>", newGCGame, newLogo, newLogo2, newManual, newScreen, argument, memcard, timer, forcereset, rating, autorunProb)
@@ -143,24 +136,24 @@ def prepareNewContent():
 		elif path.exists(gbaEmulatorFile2):
 			gbaEmulatorFile = gbaEmulatorFile2
 		else:
-			print("GBA emulator file not found. For more information, read '/apps/PUT MvDK OR MPL DEMO HERE.txt'")
-			sleep(0.5)
+			print("\nGBA emulator file not found. For more information, read '/apps/PUT MvDK OR MPL DEMO HERE.txt'")
+			sleep(inputSleep)
 			inputHidden("Action cancelled. Press Enter to continue.")
 		print("\nPlease select a GBA ROM File.")
-		sleep(0.5)
+		sleep(msgSleep)
 		newGBAGame = askopenfilename(filetypes=[("GBA ROM File", ".gba .bin")])
 		if newGBAGame == "":
 			print("Action cancelled.")
-			sleep(0.5)
+			sleep(msgSleep)
 		else:
 			size = path.getsize(newGBAGame)
 			if size > 16777216:
 				print("This file is too big. Maximum size for GBA ROM in official emulator is 16 MB.")
 				newGBAGame = ""
-				sleep(0.5)
+				sleep(msgSleep)
 			else:
 				print("Done.")
-				sleep(0.5)
+				sleep(msgSleep)
 				newLogo, newLogo2, newManual, newScreen = askForTextures(True)
 				memcard, timer, forcereset, rating, autorunProb, argument = askForSettings(True)
 				f_02 = ""
@@ -171,34 +164,39 @@ def prepareNewContent():
 				addNewContent("<GAME>", newGCGame, newLogo, newLogo2, newManual, newScreen, argument, memcard, timer, forcereset, rating, autorunProb, isEmulatedGBA=True, gbaOverlay=f_02)
 	elif choice == 3:
 		if not path.exists(gbaTransferFile):
-			print("GBA transfer file not found. For more information, read '/apps/PUT wario_agb.tgc HERE.txt'")
-			sleep(0.5)
+			print("\nGBA transfer file not found. For more information, read '/apps/PUT wario_agb.tgc HERE.txt'")
+			sleep(inputSleep)
 			inputHidden("Action cancelled. Press Enter to continue.")
 		print("\nPlease select a GBA ROM File.")
-		sleep(0.5)
+		sleep(msgSleep)
 		newGBAGame = askopenfilename(filetypes=[("GBA ROM File", ".gba .bin")])
 		if newGBAGame == "":
 			print("Action cancelled.")
-			sleep(0.5)
+			sleep(msgSleep)
 		else:
 			size = os.path.getsize(newGBAGame)
 			if size > 262144:
 				print("This file is too big. Maximum size for GBA transfer is 256 KB.")
 				newGBAGame = ""
-				sleep(0.5)
+				sleep(msgSleep)
 			else:
 				print("Done.")
-				sleep(0.5)
+				sleep(msgSleep)
 				newLogo, newLogo2, newManual, newScreen = askForTextures(True)
 				memcard, timer, forcereset, rating, autorunProb, _ = askForSettings(False)
 				err, load, ind, done = askForGBATransferTextures()
 				addNewContent("<GAME>", newGCGame, newLogo, newLogo2, newManual, newScreen, "file://"+path.basename(newGCGame), memcard, timer, forcereset, rating, autorunProb, gbaErr=err, gbaLoad=load, gbaInd=ind, gbaDone=done)
+	elif choice == 4:
+		print("\nTo inject an N64 ROM, use the GCM N64 ROMS Injector.")
+		print("https://github.com/sizious/gcm-n64-roms-injector")
+		sleep(inputSleep)
+		inputHidden("Press Enter to continue.")
 	# else, do nothing (go back to menu)
 
 def removeContent():
 	if len(contentArray) == 0:
 		print("\nThere is no content to remove.")
-		sleep(0.5)
+		sleep(msgSleep)
 		return
 	choice = makeChoice("What would you like to remove?", [c[0]+" | "+c[1]+" | "+c[2] for c in contentArray])
 	try:
@@ -223,11 +221,12 @@ def buildDisc():
 	if discSize > 1375.875:
 		print("\nThe contents of the extracted disc take up too much space.")
 		print("If you created a screen.tpl with more than one image, and you are only a few MB over the allocated space, you may want to manually open the TPL with a program like BrawlBox and change the format of each texture to CMPR (the default is RGB5A3, which takes up more space).")
+		sleep(inputSleep)
 		inputHidden("Press Enter to continue.")
 		return
 	if len(contentArray) == 0:
 		print("\nYou must add at least one game/movie to the disc before building.")
-		sleep(0.5)
+		sleep(inputSleep)
 		inputHidden("Press Enter to continue.")
 		return
 	if len(contentArray) < 5:
@@ -237,6 +236,8 @@ def buildDisc():
 			while len(contentArray) < 5:
 				contentArray += originalContentArray
 			integrateFromContentArray()
+	askForIDAndName()
+	# Finalize
 	print("\nThis will build the contents of the extracted disc into a new ISO.")
 	print("If you would like to manually change any contents (for example, the order of content on the menu in \"/temp/DemoDiscGcReEx/YOURDEMODISC/root/config_e/contents.txt\"), do so now.")
 	choice = makeChoice("Continue?", ["Yes", "No", "Exit"])
@@ -247,9 +248,11 @@ def buildDisc():
 	createDir(outputFolder)
 	while len(listdir(outputFolder)) > 0:
 		print("A file already exists in "+outputFolder+". Please move, rename, or delete this file.")
+		sleep(inputSleep)
 		inputHidden("Press Enter to continue.")
 	subprocess.call('\"'+gcit+'\" \"'+demoDiscFolder+'\" -q -d \"'+path.join(outputFolder, "output.iso")) # the name doesn't matter; gcit.exe forces a name
-	input("\nCreated new ISO in "+outputFolder+".")
+	print("\nCreated new ISO in "+outputFolder+".")
+	sleep(inputSleep)
 	inputHidden("Press Enter to exit.")
 	sys.exit()
 
@@ -262,7 +265,7 @@ def askForTextures(isGame=True):
 		[("Texture File", ".png .tpl .tex0 .bti .breft")], path.join(defaultFolder, "template_manual.png"), "Skipped Manual.")
 
 	print("\nSelect Screen. This is the texture file containing up to four image(s) shown on the menu.\nIf you do not select a texture, a default single-color texture will be used.\n(Recommended size: 340x270 for earlier discs (they show the screenshot in a smaller window), or 640x480 for most discs (the entire background changes depending on the game))")
-	sleep(0.5)
+	sleep(msgSleep)
 	while True:
 		newScreen = []
 		newScreen = askopenfilenames(filetypes=[("Texture File", ".png .tpl .tex0 .bti .breft")])
@@ -319,7 +322,7 @@ def askForSettings(askForArgument=False):
 
 def askForFile(description, fTypes, defaultFile, skipText):
 	print("\n"+description)
-	sleep(0.5)
+	sleep(msgSleep)
 	file = askopenfilename(filetypes=fTypes)
 	if file == "":
 		file = defaultFile
@@ -329,7 +332,7 @@ def askForFile(description, fTypes, defaultFile, skipText):
 		if file != "":
 			print("\""+file+"\" not found.")
 		print(skipText)
-	sleep(0.5)
+	sleep(msgSleep)
 	return file
 
 def addNewContent(config_att, game, logo1, logo2, manual, screen, config_argument, config_memcard, config_timer, config_forcereset, config_rating, config_autorunProb, isEmulatedGBA=False, gbaErr="", gbaLoad="", gbaInd="", gbaDone="", gbaOverlay=""):
@@ -437,7 +440,7 @@ def addNewContent(config_att, game, logo1, logo2, manual, screen, config_argumen
 	contentArray.append([config_att, config_folder, config_filename, config_argument, config_screenshot, config_memcard, str(config_timer), config_forcereset, config_rating, str(config_autorunProb)])
 	integrateFromContentArray()
 	print("\nAdded new content to extracted disc.")
-	sleep(0.5)
+	sleep(msgSleep)
 
 def integrateFromContentArray():
 	# newLine = config_att+"\t"+config_folder+"\t"+config_filename+"\t"+config_argument+"\t"+config_screenshot+"\t"+config_memcard+"\t"+str(config_timer)+"\t"+config_forcereset+"\t"+config_rating+"\t"+str(config_autorunProb)+"\n"
@@ -460,6 +463,68 @@ def integrateFromContentArray():
 		iFile.write(text)
 		iFile.truncate()
 
+def askForIDAndName():
+	bootFile = open(path.join(demoDiscFolder, "sys", "boot.bin"), "r+b")
+	print("Current Disc:")
+	bootFile.seek(0x0)
+	print("ID: "+bootFile.read(6).decode('utf-8'))
+	bootFile.seek(0x20)
+	print("Name: "+bootFile.read(63).decode('utf-8'))
+	choice = makeChoice("Would you like to change the ID/Name? Having a unique ID/Name is important for certain ISO loaders.", ["Yes", "No"])
+	if choice == 1:
+		print("Input the new ID and press Enter. If you do not want to change the ID, press Enter without typing anything else.")
+		print("It is strongly recommended that the ID is six characters long and follows this naming convention: (letter)(letter)(letter)(region letter)(number)(number), where (region number) is E (USA), P (PAL), or J (Japan) depending on the region. Example: SNQE12")
+		new = input().strip()
+		if new != "":
+			bootFile.seek(0x0)
+			bootFile.write(bytes(new, 'utf-8'))
+			for _ in range(6-len(new)):
+				bootFile.write(bytes([0x00]))
+		print("Input the new name and press Enter. If you do not want to change the ID, press Enter without typing anything else.")
+		print("The name should be a maximum of 63 characters long. Anything more will be ignored.")
+		new = input().strip()
+		if new != "":
+			bootFile.seek(0x20)
+			bootFile.write(bytes(new[:min(len(new), 63)], 'utf-8'))
+			for _ in range(63-len(new)):
+				bootFile.write(bytes([0x00]))
+		print("ID and Name changed to the following:")
+		bootFile.seek(0x0)
+		print("ID: "+bootFile.read(6).decode('utf-8'))
+		bootFile.seek(0x20)
+		print("Name: "+bootFile.read(63).decode('utf-8'))
+	bootFile.close()
+
+def changeSettings():
+	choice = makeChoice("Which setting would you like to change?",
+		["Timer (the amount of time before a random game/movie autoplays; default = 15 seconds)", "Banner (the disc banner that appears in the system menu)" "Go Back"])
+	if choice == 1:
+		num = makeChoiceNumInput("How many seconds would you like to wait before autoplay activates? (0 = disable autoplay)", 0, 999)
+		systemFile = open(path.join(demoDiscFolder, "root", "config_e", "system.txt"), "w")
+		systemFile.writelines("<PURPOSE> sales-promotion\n")
+		systemFile.writelines("<TIMER> "+str(num)+"\n")
+		systemFile.writelines("<START_TIMING> AT_ONCE\n")
+		systemFile.writelines("<WAIT> 0\n")
+		systemFile.writelines("<END>\n")
+		systemFile.close()
+		print("Changed timer.")
+		sleep(msgSleep)
+	elif choice == 2:
+		choice = makeChoice("Would you like to replace the current banner? You must provide a banner that is already in a .bnr format.", ["Yes", "No"])
+		if choice == 1:
+			newBanner = askopenfilename(filetypes=[("Banner File", ".bnr")])
+			if newBanner == "":
+				print("Action cancelled.")
+				sleep(msgSleep)
+			else:
+				os.remove(path.join(demoDiscFolder, "root", "opening.bnr"))
+				shutil.copy(newBanner, path.join(demoDiscFolder, "root", "opening.bnr"))
+				print("Replaced banner.")
+				sleep(msgSleep)
+		else:
+			print("Action cancelled.")
+			sleep(msgSleep)
+
 def printOriginalContents(printHeader=True):
 	print("\nCurrent demo disc contents:")
 	if len(contentArray) == 0:
@@ -473,7 +538,6 @@ def printOriginalContents(printHeader=True):
 def printHelpContents():
 	clearScreen()
 	printOriginalContents()
-	# printNewContents()
 	print("\n")
 	print("\nTYPE          - The type of content (Game or Movie; GBA content counts as a game)")
 	print("\nFOLDER        - The on-disc folder containing textures (logo, etc.) and content-specific configuration")
