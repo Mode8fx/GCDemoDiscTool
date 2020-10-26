@@ -31,19 +31,23 @@ tempDemoDiscFolder = path.join(tempFolder, "DemoDiscGcReEx")
 tempNewAdditionsFolder = path.join(tempFolder, "NewAdditions")
 
 contentArray = []
+useDefaultSettings = True
 
 inputSleep = 0.5
 msgSleep = 1
 
 def main():
+	global discSize
+
 	Tk().withdraw()
 	initTempFolder()
 	manageDemoDisc()
+	discSize = getDirSize(demoDiscFolder)/1024.0/1024
 	while True:
 		clearScreen()
 		setOriginalContents()
 		printOriginalContents()
-		choice = makeChoice("What would you like to do?", ["Add content to disc", "Remove content from disc", "Build disc", "Change disc settings", "Help (Contents)", "Exit"])
+		choice = makeChoice("What would you like to do?", ["Add content to disc", "Remove content from disc", "Build disc", "Change disc settings", ("Enable" if useDefaultSettings else "Disable")+" advanced settings", "Help (Contents)", "Quit"])
 		if choice == 1:
 			prepareNewContent()
 		elif choice == 2:
@@ -51,8 +55,10 @@ def main():
 		elif choice == 3:
 			buildDisc()
 		elif choice == 4:
-			changeSettings()
+			changeDiscSettings()
 		elif choice == 5:
+			changeDefaultContentSettings()
+		elif choice == 6:
 			printHelpContents()
 		else:
 			sys.exit()
@@ -73,9 +79,10 @@ def manageDemoDisc():
 	clearScreen()
 	print("\nPlease select a Gamecube Interactive Multi-Game Demo Disc. Version 10 and later should work, but earlier discs may work, too (they are untested).")
 	sleep(msgSleep)
-	sourceDemoDisc = ""
-	while sourceDemoDisc == "":
-		sourceDemoDisc = askopenfilename(filetypes=[("Gamecube Demo Discs", ".iso .gcm")])
+	sourceDemoDisc = askopenfilename(filetypes=[("Gamecube Demo Discs", ".iso .gcm")])
+	if sourceDemoDisc == "":
+		print("Demo disc not found.")
+		sys.exit()
 	subprocess.call('\"'+gcit+'\" \"'+sourceDemoDisc+'\" -q -f gcreex -d \"'+tempDemoDiscFolder+'\"')
 	demoDiscFolder = path.join(tempDemoDiscFolder, listdir(tempDemoDiscFolder)[0])
 	contentsFile = path.join(demoDiscFolder, "root", "config_e", "contents.txt")
@@ -122,7 +129,7 @@ def prepareNewContent():
 		sleep(msgSleep)
 		newGCGame = askopenfilename(filetypes=[("Gamecube Game File", ".iso .gcm .tgc")])
 		if newGCGame == "":
-			print("Action cancelled.")
+			print("\nAction cancelled.")
 			sleep(msgSleep)
 		else:
 			print("Done.")
@@ -143,7 +150,7 @@ def prepareNewContent():
 		sleep(msgSleep)
 		newGBAGame = askopenfilename(filetypes=[("GBA ROM File", ".gba .bin")])
 		if newGBAGame == "":
-			print("Action cancelled.")
+			print("\nAction cancelled.")
 			sleep(msgSleep)
 		else:
 			size = path.getsize(newGBAGame)
@@ -159,7 +166,7 @@ def prepareNewContent():
 				f_02 = ""
 				choice = makeChoice("Would you like to add a custom overlay to the GBA emulator app or use the existing overlay?", ["Add new overlay", "Keep current overlay"])
 				if choice == 1:
-					f_02 = askForFile("Select the Overlay. This is the image/texture file of the overlay surrounding the game.\nIf you do not select a texture, the current texture will be used.\n(Recommended size: 608x448)",
+					f_02 = askForFile("Select the Overlay. This is the image/texture file of the overlay surrounding the game.\nIf you do not select a texture, the current texture will be used.\n(Recommended size: at least 608x448)",
 						[("Texture File", ".png .tpl .tex0 .bti .breft")], "", "Skipped Overlay.")
 				addNewContent("<GAME>", newGCGame, newLogo, newLogo2, newManual, newScreen, argument, memcard, timer, forcereset, rating, autorunProb, isEmulatedGBA=True, gbaOverlay=f_02)
 	elif choice == 3:
@@ -171,7 +178,7 @@ def prepareNewContent():
 		sleep(msgSleep)
 		newGBAGame = askopenfilename(filetypes=[("GBA ROM File", ".gba .bin")])
 		if newGBAGame == "":
-			print("Action cancelled.")
+			print("\nAction cancelled.")
 			sleep(msgSleep)
 		else:
 			size = os.path.getsize(newGBAGame)
@@ -198,7 +205,11 @@ def removeContent():
 		print("\nThere is no content to remove.")
 		sleep(msgSleep)
 		return
-	choice = makeChoice("What would you like to remove?", [c[0]+" | "+c[1]+" | "+c[2] for c in contentArray])
+	choice = makeChoice("What would you like to remove?", [c[0]+" | "+c[1]+" | "+c[2] for c in contentArray]+["Go Back"])
+	if choice == len(contentArray):
+		print("\nAction cancelled.")
+		sleep(msgSleep)
+		return
 	try:
 		os.remove(path.join(demoDiscFolder, "root", contentArray[choice-1][2]))
 	except:
@@ -209,15 +220,12 @@ def removeContent():
 		print("Demo folder not found.")
 	del contentArray[choice-1]
 	integrateFromContentArray()
-	print("Deleted content from disc.")
-	sleep(1)
+	print("\nDeleted content from disc.")
+	sleep(msgSleep)
 
 def buildDisc():
 	global contentArray
 
-	print("Maximum disc size: 1375.875 MB")
-	discSize = getDirSize(demoDiscFolder)/1024.0/1024
-	print("Disc space used: "+str(round(discSize, 3))+" MB")
 	if discSize > 1375.875:
 		print("\nThe contents of the extracted disc take up too much space.")
 		print("If you created a screen.tpl with more than one image, and you are only a few MB over the allocated space, you may want to manually open the TPL with a program like BrawlBox and change the format of each texture to CMPR (the default is RGB5A3, which takes up more space).")
@@ -240,7 +248,7 @@ def buildDisc():
 	# Finalize
 	print("\nThis will build the contents of the extracted disc into a new ISO.")
 	print("If you would like to manually change any contents (for example, the order of content on the menu in \"/temp/DemoDiscGcReEx/YOURDEMODISC/root/config_e/contents.txt\"), do so now.")
-	choice = makeChoice("Continue?", ["Yes", "No", "Exit"])
+	choice = makeChoice("Continue?", ["Yes", "No, go back", "Quit"])
 	if choice == 2:
 		return
 	if choice == 3:
@@ -257,14 +265,14 @@ def buildDisc():
 	sys.exit()
 
 def askForTextures(isGame=True):
-	newLogo1 = askForFile("Select Logo 1. This is the menu icon when the content is not highlighted.\nIf you do not select a texture, a default single-color texture will be used.\n(Recommended size: 267x89)",
+	newLogo1 = askForFile("Select Logo 1. This is the menu icon when the content is not highlighted.\nIf you do not select a texture, a default single-color texture will be used.\n(Recommended size: at least 267x89)",
 		[("Texture File", ".png .tpl .tex0 .bti .breft")], path.join(defaultFolder, "template_logo.png"), "Skipped Logo 1.")
-	newLogo2 = askForFile("Select Logo 2. This is the menu icon when the content is highlighted.\nIf you do not select a texture, a default single-color texture will be used.\n(Recommended size: 267x89)",
+	newLogo2 = askForFile("Select Logo 2. This is the menu icon when the content is highlighted.\nIf you do not select a texture, a default single-color texture will be used.\n(Recommended size: at least 267x89)",
 		[("Texture File", ".png .tpl .tex0 .bti .breft")], path.join(defaultFolder, "template_logo2.png"), "Skipped Logo 2.")
-	newManual = askForFile("Select Manual. This is the image/texture file of the controls screen, displayed after selecting a game.\nIf you do not select a texture, a default single-color texture will be used.\n(Recommended size: 640x480)",
+	newManual = askForFile("Select Manual. This is the image/texture file of the controls screen, displayed after selecting a game.\nIf you do not select a texture, a default single-color texture will be used.\n(Recommended size: at least 640x480)",
 		[("Texture File", ".png .tpl .tex0 .bti .breft")], path.join(defaultFolder, "template_manual.png"), "Skipped Manual.")
 
-	print("\nSelect Screen. This is the texture file containing up to four image(s) shown on the menu.\nIf you do not select a texture, a default single-color texture will be used.\n(Recommended size: 340x270 for earlier discs (they show the screenshot in a smaller window), or 640x480 for most discs (the entire background changes depending on the game))")
+	print("\nSelect Screen. This is the texture file containing up to four image(s) shown on the menu.\nIf you do not select a texture, a default single-color texture will be used.\n(Recommended size: at least 340x270 for earlier discs (they show the screenshot in a smaller window), or at least 640x480 for most discs (the entire background changes depending on the game))")
 	sleep(msgSleep)
 	while True:
 		newScreen = []
@@ -294,31 +302,39 @@ def askForGBATransferTextures():
 	choice = makeChoice("Would you like to add custom textures to the GBA transfer app or use the existing textures?", ["Add new textures", "Keep current textures"])
 	if choice == 2:
 		return "", "", "", ""
-	err = askForFile("Select the Error Screen. This is the image/texture file of the pre-transfer screen (telling you to plug in your GBA).\nIf you do not select a texture, the current texture will be used.\n(Recommended size: 640x480)",
+	err = askForFile("Select the Error Screen. This is the image/texture file of the pre-transfer screen (telling you to plug in your GBA).\nIf you do not select a texture, the current texture will be used.\n(Recommended size: at least 640x480)",
 		[("Texture File", ".png .tpl .tex0 .bti .breft")], "", "Skipped Error Screen.")
-	load = askForFile("Select Loading Screen. This is the image/texture file displayed during the transfer.\nIf you do not select a texture, the current texture will be used.\n(Recommended size: 640x480)",
+	load = askForFile("Select Loading Screen. This is the image/texture file displayed during the transfer.\nIf you do not select a texture, the current texture will be used.\n(Recommended size: at least 640x480)",
 		[("Texture File", ".png .tpl .tex0 .bti .breft")], "", "Skipped Loading Screen.")
-	ind = askForFile("Select Indicator Icon. This is the image/texture file of the icon that appears in the progress bar (like a dot or pill).\nIf you do not select a texture, the current texture will be used.\n(Recommended size: 30x28)",
+	ind = askForFile("Select Indicator Icon. This is the image/texture file of the icon that appears in the progress bar (like a dot or pill).\nIf you do not select a texture, the current texture will be used.\n(Recommended size: at least 30x28)",
 		[("Texture File", ".png .tpl .tex0 .bti .breft")], "", "Skipped Indicator Icon.")
-	done = askForFile("Select Completed Screen. This is the image/texture file displayed when a transfer finishes.\nIf you do not select a texture, the current texture will be used.\n(Recommended size: 640x480)",
+	done = askForFile("Select Completed Screen. This is the image/texture file displayed when a transfer finishes.\nIf you do not select a texture, the current texture will be used.\n(Recommended size: at least 640x480)",
 		[("Texture File", ".png .tpl .tex0 .bti .breft")], "", "Skipped Completed Screen.")
 	return err, load, ind, done
 
 def askForSettings(askForArgument=False):
-	memcard = "ON" if makeChoice("Enable use of the memory card?", ["Yes", "No"]) == 1 else "OFF"
-	timer = int(makeChoiceNumInput("What should the time limit be (in minutes)? 0 = unlimited or video", 0, 999))
-	forcereset = "ON" if makeChoice("What should the reset button do?", ["Reset current game/movie", "Go back to main menu (also enables START+X+B shortcut to go back to menu)"]) == 1 else "OFF"
-	rating = ratingArray[makeChoice("What is the ESRB rating?", ["Rating Pending", "Early Childhood", "Everyone", "Teen", "Mature", "Adults Only"]) - 1]
-	autorunProb = int(makeChoiceNumInput("How often (0~5) should this content play on autoplay? 0=never, recommended for games; 5=often, recommended for movies", 0, 5))
-	argument = "NULL"
-	if askForArgument:
-		choice = makeChoice("Would you like to include a special argument? This is usually only required for pre-made GBA transferrables.", ["Yes", "No (Recommended)"])
-		if choice == 1:
-			print("Type the argument and press Enter. If you would not like to use an argument, simply press Enter without typing anything else.")
-			argument = input().strip()
-			if argument == "":
-				argument = "NULL"
-	return memcard, timer, rating, forcereset, autorunProb, argument
+	if useDefaultSettings:
+		memcard = "ON"
+		timer = 0
+		forcereset = "OFF"
+		rating = ratingArray[makeChoice("What is the ESRB rating?", ["Rating Pending", "Early Childhood", "Everyone", "Teen", "Mature", "Adults Only"]) - 1]
+		autorunProb = "5"
+		argument = "NULL"
+	else:
+		memcard = "ON" if makeChoice("Enable use of the memory card?", ["Yes", "No"]) == 1 else "OFF"
+		timer = int(makeChoiceNumInput("What should the time limit be (in minutes)? 0 = unlimited or video", 0, 999))
+		forcereset = "ON" if makeChoice("What should the reset button do?", ["Reset current game/movie", "Go back to main menu"]) == 1 else "OFF"
+		rating = ratingArray[makeChoice("What is the ESRB rating?", ["Rating Pending", "Early Childhood", "Everyone", "Teen", "Mature", "Adults Only"]) - 1]
+		autorunProb = int(makeChoiceNumInput("How often (0~5) should this content play on autoplay? 0=never, recommended for games; 5=often, recommended for movies", 0, 5))
+		argument = "NULL"
+		if askForArgument:
+			choice = makeChoice("Would you like to include a special argument? This is usually only required for pre-made GBA transferrables.", ["Yes", "No (Recommended)"])
+			if choice == 1:
+				print("Type the argument and press Enter. If you would not like to use an argument, simply press Enter without typing anything else.")
+				argument = input().strip()
+				if argument == "":
+					argument = "NULL"
+	return memcard, timer, forcereset, rating, autorunProb, argument
 
 def askForFile(description, fTypes, defaultFile, skipText):
 	print("\n"+description)
@@ -412,7 +428,7 @@ def addNewContent(config_att, game, logo1, logo2, manual, screen, config_argumen
 			print("Converting screen to TPL in demo folder...")
 			tempTPLFolder = path.join(demoFolder, "new tpl")
 			createDir(tempTPLFolder)
-			shutil.copy(s, path.join(tempTPLFolder, "image.png"))
+			shutil.copy(screen[0], path.join(tempTPLFolder, "image.png"))
 			for i in range(1, len(screen)):
 				shutil.copy(screen[i], path.join(tempTPLFolder, "image.mm"+str(i)+".png"))
 			subprocess.call('\"'+wimgt+'\" ENCODE \"'+path.join(tempTPLFolder, "image.png")+'\" -d \"'+path.join(demoFolder, "screen.tpl")+'\" -x CMPR') # TODO: Account for multiple screenshots here (right now it ignores anything after the first)
@@ -440,9 +456,12 @@ def addNewContent(config_att, game, logo1, logo2, manual, screen, config_argumen
 	contentArray.append([config_att, config_folder, config_filename, config_argument, config_screenshot, config_memcard, str(config_timer), config_forcereset, config_rating, str(config_autorunProb)])
 	integrateFromContentArray()
 	print("\nAdded new content to extracted disc.")
-	sleep(msgSleep)
+	sleep(inputSleep)
+	inputHidden("Press Enter to continue.")
 
 def integrateFromContentArray():
+	global discSize
+
 	# newLine = config_att+"\t"+config_folder+"\t"+config_filename+"\t"+config_argument+"\t"+config_screenshot+"\t"+config_memcard+"\t"+str(config_timer)+"\t"+config_forcereset+"\t"+config_rating+"\t"+str(config_autorunProb)+"\n"
 	cFile = open(contentsFile, "w")
 	cFile.writelines("#att	folder			tgc_filename			argument screenshot	memcard	timer	forcereset 	rating	autorun_porbability\n")
@@ -462,10 +481,11 @@ def integrateFromContentArray():
 		iFile.seek(0)
 		iFile.write(text)
 		iFile.truncate()
+	discSize = getDirSize(demoDiscFolder)/1024.0/1024
 
 def askForIDAndName():
 	bootFile = open(path.join(demoDiscFolder, "sys", "boot.bin"), "r+b")
-	print("Current Disc:")
+	print("\nCurrent Disc:")
 	bootFile.seek(0x0)
 	print("ID: "+bootFile.read(6).decode('utf-8'))
 	bootFile.seek(0x20)
@@ -495,7 +515,7 @@ def askForIDAndName():
 		print("Name: "+bootFile.read(63).decode('utf-8'))
 	bootFile.close()
 
-def changeSettings():
+def changeDiscSettings():
 	choice = makeChoice("Which setting would you like to change?",
 		["Timer (the amount of time before a random game/movie autoplays; default = 15 seconds)", "Banner (the disc banner that appears in the system menu)" "Go Back"])
 	if choice == 1:
@@ -514,7 +534,7 @@ def changeSettings():
 		if choice == 1:
 			newBanner = askopenfilename(filetypes=[("Banner File", ".bnr")])
 			if newBanner == "":
-				print("Action cancelled.")
+				print("\nAction cancelled.")
 				sleep(msgSleep)
 			else:
 				os.remove(path.join(demoDiscFolder, "root", "opening.bnr"))
@@ -522,7 +542,35 @@ def changeSettings():
 				print("Replaced banner.")
 				sleep(msgSleep)
 		else:
-			print("Action cancelled.")
+			print("\nAction cancelled.")
+			sleep(msgSleep)
+
+def changeDefaultContentSettings():
+	global useDefaultSettings
+
+	if useDefaultSettings:
+		print("Default settings are enabled.")
+		print("Memory Card           - Enabled")
+		print("Content Timer         - Disabled")
+		print("Reset Button Behavior - Go back to main menu")
+		print("Autorun Probability   - 5")
+		print("Special Argument      - Don't use")
+		choice = makeChoice("Would you like to enable advanced settings instead of the default? If you do, you will be asked to manually set these options for each new game/video.", ["Yes", "No"])
+		if choice == 1:
+			useDefaultSettings = False
+			print("Advanced settings enabled.")
+			sleep(msgSleep)
+	else:
+		print("Advanced settings are enabled.")
+		print("Memory Card           - Ask for each content")
+		print("Content Timer         - Ask for each content")
+		print("Reset Button Behavior - Ask for each content")
+		print("Autorun Probability   - Ask for each content")
+		print("Special Argument      - Ask for each content")
+		choice = makeChoice("Would you like to re-enable default settings? If you do, you will no longer be asked to manually set these options.", ["Yes", "No"])
+		if choice == 1:
+			useDefaultSettings = True
+			print("Default settings enabled.")
 			sleep(msgSleep)
 
 def printOriginalContents(printHeader=True):
@@ -534,6 +582,8 @@ def printOriginalContents(printHeader=True):
 			print("TYPE    FOLDER                        FILENAME                      ARGUMENT                      MEMCARD   TIMER   ESRB RATING      AUTORUN PROB.")
 		for content in contentArray:
 			print(content[0].ljust(8)+content[1].ljust(30)+content[2].ljust(30)+content[3].ljust(30)+content[5].ljust(10)+content[6].ljust(8)+content[8].ljust(17)+content[9])
+	print("\nMaximum disc size: 1375.875 MB")
+	print("Disc space used:   "+str(round(discSize, 3))+" MB")
 
 def printHelpContents():
 	clearScreen()
