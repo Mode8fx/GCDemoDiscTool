@@ -18,6 +18,7 @@ Some of the tools bundled with this program are not made by me, but are required
 - [GCMtoTGC](https://www.gc-forever.com/forums/viewtopic.php?t=17&start=24)
 - [TGCtoGCM](https://www.gc-forever.com/forums/viewtopic.php?t=17&start=24)
 - [Wiimms Image Tool](https://szs.wiimm.de/wimgt/)
+
 Additionally, the remaining tools are made by me and were (very slightly) modified for use in this program:
 - GC-GBA EmuInjector
 - GC-GBA Transfer Injector
