@@ -22,3 +22,8 @@ Some of the tools bundled with this program are not made by me, but are required
 Additionally, the remaining tools are made by me and were (very slightly) modified for use in this program:
 - GC-GBA EmuInjector
 - GC-GBA Transfer Injector
+
+### Known Bugs
+- Because the demo disc uses an internal ID that is different from any of its content, save files will look for this ID; in other words, a save file created for a game will not be compatible with a version of that game that exists on a generated demo disc
+- ESRB rating icons (the ones that appear onscreen after selecting a game) have incorrect sizes
+- TPL texture files generated from multiple images take up more space than they should; they are converted as the wrong format, and I can only figure out how to automatically set the format of the first image in a TPL
