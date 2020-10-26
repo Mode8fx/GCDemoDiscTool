@@ -40,7 +40,6 @@ def main():
 	global discSize
 
 	Tk().withdraw()
-	initTempFolder()
 	manageDemoDisc()
 	discSize = getDirSize(demoDiscFolder)/1024.0/1024
 	while True:
@@ -63,11 +62,17 @@ def main():
 		else:
 			sys.exit()
 
-def initTempFolder():
-	if path.isdir(tempFolder):
-		shutil.rmtree(tempFolder)
-	createDir(tempFolder)
-	mkdir(tempDemoDiscFolder)
+def initTempFolder(initNewOnly=False):
+	if initNewOnly:
+		if not path.isdir(tempFolder):
+			createDir(tempFolder)
+		if path.isdir(tempNewAdditionsFolder):
+			shutil.rmtree(tempNewAdditionsFolder)
+	else:
+		if path.isdir(tempFolder):
+			shutil.rmtree(tempFolder)
+		createDir(tempFolder)
+		mkdir(tempDemoDiscFolder)
 	mkdir(tempNewAdditionsFolder)
 
 def manageDemoDisc():
@@ -77,13 +82,21 @@ def manageDemoDisc():
 	global integratedFile
 
 	clearScreen()
-	print("\nPlease select a Gamecube Interactive Multi-Game Demo Disc. Version 10 and later should work, but earlier discs may work, too (they are untested).")
-	sleep(msgSleep)
-	sourceDemoDisc = askopenfilename(filetypes=[("Gamecube Demo Discs", ".iso .gcm")])
-	if sourceDemoDisc == "":
-		print("Demo disc not found.")
-		sys.exit()
-	subprocess.call('\"'+gcit+'\" \"'+sourceDemoDisc+'\" -q -f gcreex -d \"'+tempDemoDiscFolder+'\"')
+	if path.exists(tempDemoDiscFolder):
+		choice = makeChoice("Please make a selection.", ["Import Gamecube Demo Disc ISO/GCM", "Use extracted disc from temp folder"])
+	else:
+		choice = 1
+	if choice == 1:
+		print("\nPlease select a Gamecube Interactive Multi-Game Demo Disc. Version 10 and later should work, but earlier discs may work, too (they are untested).")
+		sleep(msgSleep)
+		sourceDemoDisc = askopenfilename(filetypes=[("Gamecube Demo Discs", ".iso .gcm")])
+		if sourceDemoDisc == "":
+			print("Demo disc not found.")
+			sys.exit()
+		initTempFolder()
+		subprocess.call('\"'+gcit+'\" \"'+sourceDemoDisc+'\" -q -f gcreex -d \"'+tempDemoDiscFolder+'\"')
+	else:
+		print("Attempting to use extracted disc in "+tempDemoDiscFolder)
 	demoDiscFolder = path.join(tempDemoDiscFolder, listdir(tempDemoDiscFolder)[0])
 	contentsFile = path.join(demoDiscFolder, "root", "config_e", "contents.txt")
 	integrateExe = path.join(demoDiscFolder, "root", "config_e", "integrate.exe")
@@ -323,7 +336,8 @@ def askForSettings(askForArgument=False):
 	else:
 		memcard = "ON" if makeChoice("Enable use of the memory card?", ["Yes", "No"]) == 1 else "OFF"
 		timer = int(makeChoiceNumInput("What should the time limit be (in minutes)? 0 = unlimited or video", 0, 999))
-		forcereset = "ON" if makeChoice("What should the reset button do?", ["Reset current game/movie", "Go back to main menu"]) == 1 else "OFF"
+		# forcereset = "ON" if makeChoice("What should the reset button do?", ["Reset current game/movie", "Go back to main menu"]) == 1 else "OFF"
+		forcereset = "OFF" # actually, I'm not sure what forcereset does...
 		rating = ratingArray[makeChoice("What is the ESRB rating?", ["Rating Pending", "Early Childhood", "Everyone", "Teen", "Mature", "Adults Only"]) - 1]
 		autorunProb = int(makeChoiceNumInput("How often (0~5) should this content play on autoplay? 0=never, recommended for games; 5=often, recommended for movies", 0, 5))
 		argument = "NULL"
@@ -492,15 +506,15 @@ def askForIDAndName():
 	print("Name: "+bootFile.read(63).decode('utf-8'))
 	choice = makeChoice("Would you like to change the ID/Name? Having a unique ID/Name is important for certain ISO loaders.", ["Yes", "No"])
 	if choice == 1:
-		print("Input the new ID and press Enter. If you do not want to change the ID, press Enter without typing anything else.")
+		print("\nInput the new ID and press Enter. If you do not want to change the ID, press Enter without typing anything else.")
 		print("It is strongly recommended that the ID is six characters long and follows this naming convention: (letter)(letter)(letter)(region letter)(number)(number), where (region number) is E (USA), P (PAL), or J (Japan) depending on the region. Example: SNQE12")
-		new = input().strip()
+		new = input().strip().upper()
 		if new != "":
 			bootFile.seek(0x0)
 			bootFile.write(bytes(new, 'utf-8'))
 			for _ in range(6-len(new)):
 				bootFile.write(bytes([0x00]))
-		print("Input the new name and press Enter. If you do not want to change the ID, press Enter without typing anything else.")
+		print("\nInput the new name and press Enter. If you do not want to change the ID, press Enter without typing anything else.")
 		print("The name should be a maximum of 63 characters long. Anything more will be ignored.")
 		new = input().strip()
 		if new != "":
@@ -552,7 +566,7 @@ def changeDefaultContentSettings():
 		print("Default settings are enabled.")
 		print("Memory Card           - Enabled")
 		print("Content Timer         - Disabled")
-		print("Reset Button Behavior - Go back to main menu")
+		# print("Reset Button Behavior - Go back to main menu")
 		print("Autorun Probability   - 5")
 		print("Special Argument      - Don't use")
 		choice = makeChoice("Would you like to enable advanced settings instead of the default? If you do, you will be asked to manually set these options for each new game/video.", ["Yes", "No"])
@@ -564,7 +578,7 @@ def changeDefaultContentSettings():
 		print("Advanced settings are enabled.")
 		print("Memory Card           - Ask for each content")
 		print("Content Timer         - Ask for each content")
-		print("Reset Button Behavior - Ask for each content")
+		# print("Reset Button Behavior - Ask for each content")
 		print("Autorun Probability   - Ask for each content")
 		print("Special Argument      - Ask for each content")
 		choice = makeChoice("Would you like to re-enable default settings? If you do, you will no longer be asked to manually set these options.", ["Yes", "No"])
