@@ -14,10 +14,10 @@ No copyrighted content is included with this program. You have to supply the dem
 
 ### Included Programs/Credits
 Some of the tools bundled with this program are not made by me, but are required for its use:
-- ![Gamecube ISO Tool](http://www.wiibackupmanager.co.uk/gcit.html)
-- ![GCMtoTGC](https://www.gc-forever.com/forums/viewtopic.php?t=17&start=24)
-- ![TGCtoGCM](https://www.gc-forever.com/forums/viewtopic.php?t=17&start=24)
-- ![Wiimms Image Tool](https://szs.wiimm.de/wimgt/)
+- [Gamecube ISO Tool](http://www.wiibackupmanager.co.uk/gcit.html)
+- [GCMtoTGC](https://www.gc-forever.com/forums/viewtopic.php?t=17&start=24)
+- [TGCtoGCM](https://www.gc-forever.com/forums/viewtopic.php?t=17&start=24)
+- [Wiimms Image Tool](https://szs.wiimm.de/wimgt/)
 Additionally, the remaining tools are made by me and were (very slightly) modified for use in this program:
 - GC-GBA EmuInjector
 - GC-GBA Transfer Injector
