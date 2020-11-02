@@ -35,6 +35,7 @@ useDefaultSettings = True
 
 inputSleep = 0.5
 msgSleep = 1
+maxSize = 1425760.0/1024
 
 def main():
 	global discSize
@@ -219,7 +220,7 @@ def removeContent():
 		sleep(msgSleep)
 		return
 	choice = makeChoice("What would you like to remove?", [c[0]+" | "+c[1]+" | "+c[2] for c in contentArray]+["Go Back"])
-	if choice == len(contentArray):
+	if choice == len(contentArray) + 1:
 		print("\nAction cancelled.")
 		sleep(msgSleep)
 		return
@@ -239,7 +240,7 @@ def removeContent():
 def buildDisc():
 	global contentArray
 
-	if discSize > 1375.875:
+	if discSize > maxSize:
 		print("\nThe contents of the extracted disc take up too much space.")
 		print("If you created a screen.tpl with more than one image, and you are only a few MB over the allocated space, you may want to manually open the TPL with a program like BrawlBox and change the format of each texture to CMPR (the default is RGB5A3, which takes up more space).")
 		sleep(inputSleep)
@@ -596,7 +597,7 @@ def printOriginalContents(printHeader=True):
 			print("TYPE    FOLDER                        FILENAME                      ARGUMENT                      MEMCARD   TIMER   ESRB RATING      AUTORUN PROB.")
 		for content in contentArray:
 			print(content[0].ljust(8)+content[1].ljust(30)+content[2].ljust(30)+content[3].ljust(30)+content[5].ljust(10)+content[6].ljust(8)+content[8].ljust(17)+content[9])
-	print("\nMaximum disc size: 1375.875 MB")
+	print("\nMaximum disc size: "+str(maxSize)+" MB")
 	print("Disc space used:   "+str(round(discSize, 3))+" MB")
 
 def printHelpContents():
