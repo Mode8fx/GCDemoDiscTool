@@ -649,7 +649,8 @@ def pluralize(base, num, singularSuffix="", pluralSuffix="s"):
 	return base+singularSuffix if num == 1 else base+pluralSuffix
 
 """
-	Creates a copy of a given string, automatically adding line breaks and indenting lines as necessary, without splitting any words in two.
+	Creates a copy of a given string, automatically adding line breaks and indenting lines, without splitting any words in two.
+	A line's length will only exceed the given limit if a single word in the string exceeds it.
 
 	Parameters
 	----------
@@ -664,7 +665,7 @@ def pluralize(base, num, singularSuffix="", pluralSuffix="s"):
 
 	Returns
 	-------
-	The output string if it can be created with the given parameters, False otherwise.
+	The output string.
 
 	Examples
 	--------
@@ -676,23 +677,21 @@ def pluralize(base, num, singularSuffix="", pluralSuffix="s"):
 		? Strong Bad's test sentence is as
 		. ! follows: The fish was delish, and it
 		. ! made quite a dish.
-	Input 1
-		limitedString("THIS_WORD_IS_TOO_LONG", 15, "", "")
-	Output:
-		False
+	Input 2
+		limitedString("THIS_WORD_IS_VERY_LONG there", 15, "", "")
+	Output 2:
+		"THIS_WORD_IS_VERY_LONG\nthere"
+		(Which would look like the following when printed):
+		THIS_WORD_IS_VERY_LONG
+		there
 """
 def limitedString(string, lineLength=80, firstLineIndent="", lineIndent="  "):
 	printArray = string.split(" ")
-	if len(printArray[0]) > lineLength - len(firstLineIndent):
-		return False
-	for elem in printArray[1:]:
-		if len(elem) > lineLength - len(lineIndent):
-			return False
 	totalString = ""
 	currString = firstLineIndent
 	isStartOfLine = True
 	while len(printArray) > 0:
-		if len(printArray[0]) + (not isStartOfLine) <= lineLength - len(currString):
+		if isStartOfLine or (len(printArray[0]) + (not isStartOfLine) <= lineLength - len(currString)):
 			currString += (" " if not isStartOfLine else "")+printArray.pop(0)
 			isStartOfLine = False
 		else:
@@ -701,6 +700,52 @@ def limitedString(string, lineLength=80, firstLineIndent="", lineIndent="  "):
 			isStartOfLine = True
 	totalString += currString
 	return totalString
+
+"""
+	Shortens a string to a maximum length, padding the last few characters with a given character if necessary.
+	You have the option of whether or not the string can cut off mid-word.
+
+	Parameters
+	----------
+	string : str
+		The string to be shortened.
+	maxLength : int
+		The maximum length of the output.
+	suffixChar : str
+		The character that will pad a long string
+	suffixLength : int
+		The length of the padding
+	cutoff : bool
+		If True, the string can be cut mid-word; else, it will be cut at the end of the previous word.
+
+	Returns
+	-------
+	The (possibly) shortened string, with spaces stripped from the right side of the pre-padded output.
+
+	Examples
+	--------
+	Input 1
+		shorten("this string is too long", 20, '.', 3, True)
+	Output 1
+		"This string is to..."
+	Input 2
+		shorten("this string is too long", 20, '.', 3, False)
+	Output 2
+		"This string is..."
+	Input 3
+		shorten("this is short", 15, '.', 3, True)
+	Output 3
+		"this is short"
+"""
+def shorten(string, maxLength=10, suffixChar='.', suffixLength=3, cutoff=True):
+	if len(string) <= maxLength:
+		return string
+	if cutoff:
+		return string[:(maxLength-suffixLength)].rstrip()+(suffixChar*suffixLength)
+	shortened = string.rstrip()
+	while len(shortened) > maxLength-suffixLength:
+		shortened = " ".join(shortened.split(" ")[:-1]).rstrip()
+	return shortened+(suffixChar*suffixLength)
 
 """
 	Returns a string indicating the input number of bytes in its most significant form, rounding up to the indicated number of decimal places.

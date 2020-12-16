@@ -71,6 +71,7 @@ def main():
 		elif choice == 7:
 			printCredits()
 		else:
+			clearScreen()
 			sys.exit()
 
 def initTempFolder(initNewOnly=False):
@@ -88,27 +89,38 @@ def initTempFolder(initNewOnly=False):
 
 def manageDemoDisc():
 	global demoDiscFolder
+	global demoDiscType
 	global contentsFile
 	global integrateExe
 	global integratedFile
 
 	initScreen()
-	if path.exists(tempDemoDiscFolder):
-		choice = makeChoice("Please make a selection.", ["Import Gamecube Demo Disc ISO/GCM", "Use extracted disc from temp folder"])
+	tempDDFContents = listdir(tempDemoDiscFolder)
+	if path.exists(tempDemoDiscFolder) and len([f for f in tempDDFContents if path.isdir(path.join(tempDemoDiscFolder, f))]) > 0:
+		demoDiscFolder = path.join(tempDemoDiscFolder, listdir(tempDemoDiscFolder)[0])
+		print("You have previously started building a demo disc:")
+		print(demoDiscFolder)
+		choice = makeChoice("Would you like to continue it?", ["Yes, load this disc", "No, load a new ISO"])
 	else:
-		choice = 1
+		choice = 2
 	if choice == 1:
-		print("\nPlease select a Gamecube Interactive Multi-Game Demo Disc. Version 10 and later should work, but earlier discs may work, too (they are untested).")
+		print(limitedString("\nAttempting to use extracted disc."))
+	else:
+		print("\nPlease select a Gamecube Interactive Multi-Game Demo Disc (USA).")
 		sleep(msgSleep)
 		sourceDemoDisc = askopenfilename(filetypes=[("Gamecube Demo Discs", ".iso .gcm")])
 		if sourceDemoDisc == "":
 			print("Demo disc not found.")
+			sleep(inputSleep)
+			inputHidden("Press Enter to exit.")
 			sys.exit()
 		initTempFolder()
 		subprocess.call('\"'+gcit+'\" \"'+sourceDemoDisc+'\" -q -f gcreex -d \"'+tempDemoDiscFolder+'\"')
-	else:
-		print("Attempting to use extracted disc in "+tempDemoDiscFolder)
-	demoDiscFolder = path.join(tempDemoDiscFolder, listdir(tempDemoDiscFolder)[0])
+	newTempDDFContents = [f for f in listdir(tempDemoDiscFolder) if path.isdir(path.join(tempDemoDiscFolder, f)) and (not f in tempDDFContents)]
+	try:
+		demoDiscFolder = path.join(tempDemoDiscFolder, newTempDDFContents[0])
+	except:
+		pass # this will be tested at the end of this function
 	contentsFile = path.join(demoDiscFolder, "root", "config_e", "contents.txt")
 	integrateExe = path.join(demoDiscFolder, "root", "config_e", "integrate.exe")
 	integratedFile = path.join(demoDiscFolder, "root", "integrated.txt")
@@ -119,6 +131,10 @@ def manageDemoDisc():
 		print("\nInvalid disc. Quitting.")
 		sleep(msgSleep)
 		sys.exit()
+	demoDiscType = makeChoice("Which demo disc is this?", [
+		"October 2001-August 2002 or Version 7-8",
+		"Version 9-13, Preview Disc, MKDD Bonus Disc, or Star Wars Bonus Disc",
+		"Version 14-35"])
 
 def setOriginalContents():
 	global contentArray
@@ -147,7 +163,11 @@ def prepareNewContent():
 	global gbaEmulatorFile
 
 	choice = makeChoice("Which type of content would you like to add?",
-		["Gamecube ISO/GCM/TGC File", "GBA ROM (for use in official emulator)", "GBA ROM (for transfer to GBA)", "N64 ROM (for use in official emulator)", "Go Back"])
+		["Gamecube ISO/GCM/TGC File",
+		"GBA ROM (for use in official emulator)",
+		"GBA ROM (for transfer to GBA)",
+		"N64 ROM (for use in official emulator)",
+		"Go Back"])
 	if choice == 1:
 		print("\nPlease select a Gamecube ISO/GCM/TGC File.")
 		sleep(msgSleep)
@@ -167,9 +187,10 @@ def prepareNewContent():
 		elif path.exists(gbaEmulatorFile2):
 			gbaEmulatorFile = gbaEmulatorFile2
 		else:
-			print("\nGBA emulator file not found. For more information, read '/apps/PUT MvDK OR MPL DEMO HERE.txt'")
+			print("\n"+limitedString("GBA emulator file not found. For more information, read '/apps/PUT MvDK OR MPL DEMO HERE.txt'"))
 			sleep(inputSleep)
 			inputHidden("Action cancelled. Press Enter to continue.")
+			return
 		print("\nPlease select a GBA ROM File.")
 		sleep(msgSleep)
 		newGBAGame = askopenfilename(filetypes=[("GBA ROM File", ".gba .bin")])
@@ -188,14 +209,14 @@ def prepareNewContent():
 				newLogo, newLogo2, newManual, newScreen = askForTextures(True)
 				memcard, timer, forcereset, rating, autorunProb, argument = askForSettings(True)
 				f_02 = ""
-				choice = makeChoice("Would you like to add a custom overlay to the GBA emulator app or use the existing overlay?", ["Add new overlay", "Keep current overlay"])
+				choice = makeChoice(limitedString("Would you like to add a custom overlay to the GBA emulator app or use the existing overlay?"), ["Add new overlay", "Keep current overlay"])
 				if choice == 1:
 					f_02 = askForFile("Select the Overlay. This is the image/texture file of the overlay surrounding the game.\nIf you do not select a texture, the current texture will be used.\n(Recommended size: at least 608x448)",
 						[("Texture File", ".png .tpl .tex0 .bti .breft")], "", "Skipped Overlay.")
 				addNewContent("<GAME>", newGCGame, newLogo, newLogo2, newManual, newScreen, argument, memcard, timer, forcereset, rating, autorunProb, isEmulatedGBA=True, gbaOverlay=f_02)
 	elif choice == 3:
 		if not path.exists(gbaTransferFile):
-			print("\nGBA transfer file not found. For more information, read '/apps/PUT wario_agb.tgc HERE.txt'")
+			print("\n"+limitedString("GBA transfer file not found. For more information, read '/apps/PUT wario_agb.tgc HERE.txt'"))
 			sleep(inputSleep)
 			inputHidden("Action cancelled. Press Enter to continue.")
 		print("\nPlease select a GBA ROM File.")
@@ -252,7 +273,7 @@ def buildDisc():
 
 	if discSize > maxSize:
 		print("\nThe contents of the extracted disc take up too much space.")
-		print("If you created a screen.tpl with more than one image, and you are only a few MB over the allocated space, you may want to manually open the TPL with a program like BrawlBox and change the format of each texture to CMPR (the default is RGB5A3, which takes up more space).")
+		print(limitedString("If you created a screen.tpl with more than one image, and you are only a few MB over the allocated space, you may want to manually open the TPL with a program like BrawlBox and change the format of each texture to CMPR (the default is RGB5A3, which takes up more space)."))
 		sleep(inputSleep)
 		inputHidden("Press Enter to continue.")
 		return
@@ -262,7 +283,7 @@ def buildDisc():
 		inputHidden("Press Enter to continue.")
 		return
 	if len(contentArray) < 5:
-		choice = makeChoice("You have fewer than 5 games/movies. To prevent unintended visual bugs, would you like to duplicate menu options? This will not take up any additional space.", ["Yes (Recommended)", "No"])
+		choice = makeChoice(limitedString("You have fewer than 5 games/movies. To prevent unintended visual bugs, would you like to duplicate menu options? This will not take up any additional space."), ["Yes (Recommended)", "No"])
 		if choice == 1:
 			originalContentArray = copy(contentArray)
 			while len(contentArray) < 5:
@@ -271,7 +292,7 @@ def buildDisc():
 	askForIDAndName()
 	# Finalize
 	print("\nThis will build the contents of the extracted disc into a new ISO.")
-	print("If you would like to manually change any contents (for example, the order of content on the menu in \"/temp/DemoDiscGcReEx/YOURDEMODISC/root/config_e/contents.txt\"), do so now.")
+	print(limitedString("If you would like to manually change any contents (for example, the order of content on the menu in \""+demoDiscFolder+"/root/config_e/contents.txt\"), do so now."))
 	choice = makeChoice("Continue?", ["Yes", "No, go back", "Quit"])
 	if choice == 2:
 		return
@@ -279,16 +300,19 @@ def buildDisc():
 		sys.exit()
 	createDir(outputFolder)
 	while len(listdir(outputFolder)) > 0:
-		print("A file already exists in "+outputFolder+". Please move, rename, or delete this file.")
+		print(limitedString("A file already exists in "+outputFolder+". Please move, rename, or delete this file."))
 		sleep(inputSleep)
 		inputHidden("Press Enter to continue.")
 	subprocess.call('\"'+gcit+'\" \"'+demoDiscFolder+'\" -q -d \"'+path.join(outputFolder, "output.iso")) # the name doesn't matter; gcit.exe forces a name
-	print("\nCreated new ISO in "+outputFolder+".")
-	sleep(inputSleep)
+	print("\n"+limitedString("Created new ISO in "+outputFolder+"."))
+	sleep(msgSleep)
+	print(limitedString("The currently extracted disc is stored in \""+demoDiscFolder+"\". Delete this folder if you are done building your disc."))
+	sleep(msgSleep)
 	inputHidden("Press Enter to exit.")
 	sys.exit()
 
 def askForTextures(isGame=True):
+	# TODO: Account for demoDiscType (currently only covers #2)
 	newLogo1 = askForFile("Select Logo 1. This is the menu icon when the content is not highlighted.\nIf you do not select a texture, a default single-color texture will be used.\n(Recommended size: at least 267x89)",
 		[("Texture File", ".png .tpl .tex0 .bti .breft")], path.join(defaultFolder, "template_logo.png"), "Skipped Logo 1.")
 	newLogo2 = askForFile("Select Logo 2. This is the menu icon when the content is highlighted.\nIf you do not select a texture, a default single-color texture will be used.\n(Recommended size: at least 267x89)",
@@ -296,7 +320,7 @@ def askForTextures(isGame=True):
 	newManual = askForFile("Select Manual. This is the image/texture file of the controls screen, displayed after selecting a game.\nIf you do not select a texture, a default single-color texture will be used.\n(Recommended size: at least 640x480)",
 		[("Texture File", ".png .tpl .tex0 .bti .breft")], path.join(defaultFolder, "template_manual.png"), "Skipped Manual.")
 
-	print("\nSelect Screen. This is the texture file containing up to four image(s) shown on the menu.\nIf you do not select a texture, a default single-color texture will be used.\n(Recommended size: at least 340x270 for earlier discs (they show the screenshot in a smaller window), or at least 640x480 for most discs (the entire background changes depending on the game))")
+	print("\n"+limitedString("Select Screen. This is the texture file containing up to four image(s) shown on the menu.\nIf you do not select a texture, a default single-color texture will be used.\n(Recommended size: at least 340x270 for earlier discs (they show the screenshot in a smaller window), or at least 640x480 for most discs (the entire background changes depending on the game))"))
 	sleep(msgSleep)
 	while True:
 		newScreen = []
@@ -312,7 +336,7 @@ def askForTextures(isGame=True):
 		passed = True
 		for screen in newScreen:
 			if not path.isfile(screen):
-				print("\""+screen+"\" not found.")
+				print(limitedString("\""+screen+"\" not found."))
 				print("Skipped screen.")
 				passed = False
 				break
@@ -323,7 +347,7 @@ def askForTextures(isGame=True):
 	return newLogo1, newLogo2, newManual, newScreen
 
 def askForGBATransferTextures():
-	choice = makeChoice("Would you like to add custom textures to the GBA transfer app or use the existing textures?", ["Add new textures", "Keep current textures"])
+	choice = makeChoice(limitedString("Would you like to add custom textures to the GBA transfer app or use the existing textures?"), ["Add new textures", "Keep current textures"])
 	if choice == 2:
 		return "", "", "", ""
 	err = askForFile("Select the Error Screen. This is the image/texture file of the pre-transfer screen (telling you to plug in your GBA).\nIf you do not select a texture, the current texture will be used.\n(Recommended size: at least 640x480)",
@@ -346,23 +370,23 @@ def askForSettings(askForArgument=False):
 		argument = "NULL"
 	else:
 		memcard = "ON" if makeChoice("Enable use of the memory card?", ["Yes", "No"]) == 1 else "OFF"
-		timer = int(makeChoiceNumInput("What should the time limit be (in minutes)? 0 = unlimited or video", 0, 999))
+		timer = int(makeChoiceNumInput("What should the time limit be (in minutes)? 0 = unlimited or movie", 0, 999))
 		# forcereset = "ON" if makeChoice("What should the reset button do?", ["Reset current game/movie", "Go back to main menu"]) == 1 else "OFF"
 		forcereset = "OFF" # actually, I'm not sure what forcereset does...
 		rating = ratingArray[makeChoice("What is the ESRB rating?", ["Rating Pending", "Early Childhood", "Everyone", "Teen", "Mature", "Adults Only"]) - 1]
-		autorunProb = int(makeChoiceNumInput("How often (0~5) should this content play on autoplay? 0=never, recommended for games; 5=often, recommended for movies", 0, 5))
+		autorunProb = int(makeChoiceNumInput(limitedString("How often (0~5) should this content play on autoplay? 0=never, recommended for games; 5=often, recommended for movies"), 0, 5))
 		argument = "NULL"
 		if askForArgument:
-			choice = makeChoice("Would you like to include a special argument? This is usually only required for pre-made GBA transferrables.", ["Yes", "No (Recommended)"])
+			choice = makeChoice(limitedString("Would you like to include a special argument? This is usually only required for pre-made GBA transferrables."), ["Yes", "No (Recommended)"])
 			if choice == 1:
-				print("Type the argument and press Enter. If you would not like to use an argument, simply press Enter without typing anything else.")
+				print(limitedString("Type the argument and press Enter. If you would not like to use an argument, simply press Enter without typing anything else."))
 				argument = input().strip()
 				if argument == "":
 					argument = "NULL"
 	return memcard, timer, forcereset, rating, autorunProb, argument
 
 def askForFile(description, fTypes, defaultFile, skipText):
-	print("\n"+description)
+	print("\n"+limitedString(description))
 	sleep(msgSleep)
 	file = askopenfilename(filetypes=fTypes)
 	if file == "":
@@ -371,7 +395,7 @@ def askForFile(description, fTypes, defaultFile, skipText):
 		print("Done.")
 	else:
 		if file != "":
-			print("\""+file+"\" not found.")
+			print(limitedString("\""+file+"\" not found."))
 		print(skipText)
 	sleep(msgSleep)
 	return file
@@ -515,18 +539,18 @@ def askForIDAndName():
 	print("ID: "+bootFile.read(6).decode('utf-8'))
 	bootFile.seek(0x20)
 	print("Name: "+bootFile.read(63).decode('utf-8'))
-	choice = makeChoice("Would you like to change the ID/Name? Having a unique ID/Name is important for certain ISO loaders.", ["Yes", "No"])
+	choice = makeChoice(limitedString("Would you like to change the ID/Name? Having a unique ID/Name is important for certain ISO loaders."), ["Yes", "No"])
 	if choice == 1:
-		print("\nInput the new ID and press Enter. If you do not want to change the ID, press Enter without typing anything else.")
-		print("It is strongly recommended that the ID is six characters long and follows this naming convention: (letter)(letter)(letter)(region letter)(number)(number), where (region number) is E (USA), P (PAL), or J (Japan) depending on the region. Example: SNQE12")
+		print("\n"+limitedString("Input the new ID and press Enter. If you do not want to change the ID, press Enter without typing anything else."))
+		print(limitedString("It is strongly recommended that the ID is six characters long and follows this naming convention: (letter)(letter)(letter)(region letter)(number)(number), where (region number) is E (USA), P (PAL), or J (Japan) depending on the region. Example: SNQE12"))
 		new = input().strip().upper()
 		if new != "":
 			bootFile.seek(0x0)
 			bootFile.write(bytes(new, 'utf-8'))
 			for _ in range(6-len(new)):
 				bootFile.write(bytes([0x00]))
-		print("\nInput the new name and press Enter. If you do not want to change the ID, press Enter without typing anything else.")
-		print("The name should be a maximum of 63 characters long. Anything more will be ignored.")
+		print("\n"+limitedString("Input the new name and press Enter. If you do not want to change the ID, press Enter without typing anything else."))
+		print(limitedString("The name should be a maximum of 63 characters long. Anything more will be ignored."))
 		new = input().strip()
 		if new != "":
 			bootFile.seek(0x20)
@@ -555,7 +579,7 @@ def changeDiscSettings():
 		print("Changed timer.")
 		sleep(msgSleep)
 	elif choice == 2:
-		choice = makeChoice("Would you like to replace the current banner? You must provide a banner that is already in a .bnr format.", ["Yes", "No"])
+		choice = makeChoice(limitedString("Would you like to replace the current banner? You must provide a banner that is already in a .bnr format."), ["Yes", "No"])
 		if choice == 1:
 			newBanner = askopenfilename(filetypes=[("Banner File", ".bnr")])
 			if newBanner == "":
@@ -580,7 +604,7 @@ def changeDefaultContentSettings():
 		# print("Reset Button Behavior - Go back to main menu")
 		print("Autorun Probability   - 5")
 		print("Special Argument      - Don't use")
-		choice = makeChoice("Would you like to enable advanced settings instead of the default? If you do, you will be asked to manually set these options for each new game/video.", ["Yes", "No"])
+		choice = makeChoice(limitedString("Would you like to enable advanced settings instead of the default? If you do, you will be asked to manually set these options for each new game/movie."), ["Yes", "No"])
 		if choice == 1:
 			useDefaultSettings = False
 			print("Advanced settings enabled.")
@@ -592,7 +616,7 @@ def changeDefaultContentSettings():
 		# print("Reset Button Behavior - Ask for each content")
 		print("Autorun Probability   - Ask for each content")
 		print("Special Argument      - Ask for each content")
-		choice = makeChoice("Would you like to re-enable default settings? If you do, you will no longer be asked to manually set these options.", ["Yes", "No"])
+		choice = makeChoice(limitedString("Would you like to re-enable default settings? If you do, you will no longer be asked to manually set these options."), ["Yes", "No"])
 		if choice == 1:
 			useDefaultSettings = True
 			print("Default settings enabled.")
@@ -610,25 +634,31 @@ def printOriginalContents(printHeader=True):
 		print("None")
 	else:
 		if printHeader:
-			print("TYPE    FOLDER                        FILENAME                      ARGUMENT                      MEMCARD   TIMER   ESRB RATING      AUTORUN PROB.")
+			print("TYPE     FOLDER                          FILENAME                        ARGUMENT           MEMCARD   TIMER   ESRB RATING      AUTORUN PROB.")
 		for content in contentArray:
-			print(content[0].ljust(8)+content[1].ljust(30)+content[2].ljust(30)+content[3].ljust(30)+content[5].ljust(10)+content[6].ljust(8)+content[8].ljust(17)+content[9])
+			print(shorten(content[0],  7).ljust( 9), end='')
+			print(shorten(content[1], 30).ljust(32), end='')
+			print(shorten(content[2], 30).ljust(32), end='')
+			print(shorten(content[3], 17).ljust(19), end='')
+			print(shorten(content[5],  8).ljust(10), end='')
+			print(shorten(content[6],  6).ljust( 8), end='')
+			print(shorten(content[8], 15).ljust(17), end='')
+			print(shorten(content[9],  7).ljust(9))
 	print("\nMaximum disc size: "+str(maxSize)+" MB")
 	print("Disc space used:   "+str(round(discSize, 3))+" MB")
 
 def printHelpContents():
-	clearScreen()
+	initScreen()
 	printOriginalContents()
 	print("\n")
-	print("\nTYPE          - The type of content (Game or Movie; GBA content counts as a game)")
-	print("\nFOLDER        - The on-disc folder containing textures (logo, etc.) and content-specific configuration")
-	print("\nFILENAME      - The on-disc file containing the actual game/movie")
-	print("\nARGUMENT      - Special argument for specific content (e.g. the GBA ROM in GBA content); usually NULL")
-	print("\nMEMCARD       - Should the memory card be enabled; usually ON for full games, OFF for everything else")
-	print("\nTIMER         - The amount of time in minutes before the content auto-quits back to the menu; 0 for unlimited or movie")
-	print("\nESRB RATING   - The ESRB rating")
-	print("\nAUTORUN PROB. - The frequency of this content auto-playing if no buttons are pressed on the menu;")
-	print("                  0 (never; recommended for games) through 5 (often; recommended for movies)")
+	print("\n"+limitedString("TYPE          - The type of content (Game or Movie; GBA content counts as a game)", 80, "", "                "))
+	print("\n"+limitedString("FOLDER        - The on-disc folder containing textures (logo, etc.) and content-specific configuration", 80, "", "                "))
+	print("\n"+limitedString("FILENAME      - The on-disc file containing the actual game/movie", 80, "", "                "))
+	print("\n"+limitedString("ARGUMENT      - Special argument for specific content (e.g. the GBA ROM in GBA content); usually NULL", 80, "", "                "))
+	print("\n"+limitedString("MEMCARD       - Should the memory card be enabled; usually ON for full games, OFF for everything else", 80, "", "                "))
+	print("\n"+limitedString("TIMER         - The amount of time in minutes before the content auto-quits back to the menu; 0 for unlimited or movie", 80, "", "                "))
+	print("\n"+limitedString("ESRB RATING   - The ESRB rating", 80, "", "                "))
+	print("\n"+limitedString("AUTORUN PROB. - The frequency of this content auto-playing if no buttons are pressed on the menu; 0 (never; recommended for games) through 5 (often; recommended for movies)", 80, "", "                "))
 	inputHidden("\nPress Enter to continue.")
 
 def printCredits():
