@@ -10,6 +10,7 @@ from tkinter.filedialog import askopenfilename, askopenfilenames
 import subprocess
 from getpass import getpass as inputHidden
 from gatelib import *
+from PIL import Image, ImageDraw, ImageFont
 
 ratingArray = ["RATING_PENDING", "EARLY_CHILDHOOD", "EVERYONE", "TEEN", "ADULTS_ONLY"]
 
@@ -19,16 +20,18 @@ gcmtotgc = path.join(currFolder, "apps", "gcmtotgc.exe")
 tgctogcm = path.join(currFolder, "apps", "tgctogcm.exe")
 wimgt = path.join(currFolder, "apps", "wimgt.exe")
 outputFolder = path.join(currFolder, "output")
-defaultFolder = path.join(currFolder, "apps", "default files")
 gbaTransferInjector = path.join(currFolder, "apps", "GCGBA_ti.py")
 gbaTransferFile = path.join(currFolder, "apps", "wario_agb.tgc")
 gbaEmulatorInjector = path.join(currFolder, "apps", "GCGBA_ei.py")
 gbaEmulatorFile1 = path.join(currFolder, "apps", "zz_MarioVSDonkey_game.tgc")
 gbaEmulatorFile2 = path.join(currFolder, "apps", "zz_MarioPinballLand_game.tgc")
+arialFont = path.join(currFolder, "apps", "arial.ttf")
 
 tempFolder = path.join(currFolder, "temp")
 tempDemoDiscFolder = path.join(tempFolder, "DemoDiscGcReEx")
 tempNewAdditionsFolder = path.join(tempFolder, "NewAdditions")
+tempImagesFolder = path.join(tempFolder, "Images")
+tempImagePath = path.join(tempImagesFolder, "image.png")
 
 contentArray = []
 useDefaultSettings = True
@@ -40,7 +43,7 @@ maxSize = 1425760.0/1024
 def main():
 	global discSize
 
-	# Tk().withdraw()
+	Tk().withdraw()
 	manageDemoDisc()
 	discSize = getDirSize(demoDiscFolder)/1024.0/1024
 	while True:
@@ -80,12 +83,15 @@ def initTempFolder(initNewOnly=False):
 			createDir(tempFolder)
 		if path.isdir(tempNewAdditionsFolder):
 			shutil.rmtree(tempNewAdditionsFolder)
+		if path.isdir(tempImagesFolder):
+			shutil.rmtree(tempImagesFolder)
 	else:
 		if path.isdir(tempFolder):
 			shutil.rmtree(tempFolder)
 		createDir(tempFolder)
 		mkdir(tempDemoDiscFolder)
 	mkdir(tempNewAdditionsFolder)
+	mkdir(tempImagesFolder)
 
 def manageDemoDisc():
 	global demoDiscFolder
@@ -128,13 +134,15 @@ def manageDemoDisc():
 		print("\nValid demo disc.")
 		sleep(msgSleep)
 	else:
-		print("\nInvalid disc. Quitting.")
+		print("\n"+limitedString("Invalid disc. If this is really a demo disc, it may be an earlier disc that does not contain the config_e folder used to generate the menu layout."))
+		# Either use a later disc (Version 9 and later should work), or copy the config_e folder from a later disc and place it in +path.join(demoDiscFolder, "root")
 		sleep(msgSleep)
+		inputHidden("\nPress Enter to exit.")
 		sys.exit()
 	demoDiscType = makeChoice("Which demo disc is this?", [
-		"October 2001-August 2002 or Version 7-8",
-		"Version 9-13, Preview Disc, MKDD Bonus Disc, or Star Wars Bonus Disc",
-		"Version 14-35"])
+		"October 2001-August 2002 / Version 7-8",
+		"Version 9-13 / Preview Disc / Mario Kart Bonus Disc / Star Wars Bonus Disc",
+		"Version 14-35 / Resident Evil 4 Preview Disc"])
 
 def setOriginalContents():
 	global contentArray
@@ -178,7 +186,8 @@ def prepareNewContent():
 		else:
 			print("Done.")
 			sleep(msgSleep)
-			newLogo, newLogo2, newManual, newScreen = askForTextures(True)
+			isGame = (makeChoice("Is this a game/demo or a movie/trailer?", ["Game", "Movie"]) == 1)
+			newLogo, newLogo2, newManual, newScreen = askForTextures(isGame)
 			memcard, timer, forcereset, rating, autorunProb, argument = askForSettings(True)
 			addNewContent("<GAME>", newGCGame, newLogo, newLogo2, newManual, newScreen, argument, memcard, timer, forcereset, rating, autorunProb)
 	elif choice == 2:
@@ -208,11 +217,11 @@ def prepareNewContent():
 				sleep(msgSleep)
 				newLogo, newLogo2, newManual, newScreen = askForTextures(True)
 				memcard, timer, forcereset, rating, autorunProb, argument = askForSettings(True)
-				f_02 = ""
+				f_02 = None
 				choice = makeChoice(limitedString("Would you like to add a custom overlay to the GBA emulator app or use the existing overlay?"), ["Add new overlay", "Keep current overlay"])
 				if choice == 1:
 					f_02 = askForFile("Select the Overlay. This is the image/texture file of the overlay surrounding the game.\nIf you do not select a texture, the current texture will be used.\n(Recommended size: at least 608x448)",
-						[("Texture File", ".png .tpl .tex0 .bti .breft")], "", "Skipped Overlay.")
+						[("Texture File", ".png .tpl .tex0 .bti .breft")], (608, 448), "Skipped Overlay.")
 				addNewContent("<GAME>", newGCGame, newLogo, newLogo2, newManual, newScreen, argument, memcard, timer, forcereset, rating, autorunProb, isEmulatedGBA=True, gbaOverlay=f_02)
 	elif choice == 3:
 		if not path.exists(gbaTransferFile):
@@ -312,21 +321,40 @@ def buildDisc():
 	sys.exit()
 
 def askForTextures(isGame=True):
-	# TODO: Account for demoDiscType (currently only covers #2)
-	newLogo1 = askForFile("Select Logo 1. This is the menu icon when the content is not highlighted.\nIf you do not select a texture, a default single-color texture will be used.\n(Recommended size: at least 267x89)",
-		[("Texture File", ".png .tpl .tex0 .bti .breft")], path.join(defaultFolder, "template_logo.png"), "Skipped Logo 1.")
-	newLogo2 = askForFile("Select Logo 2. This is the menu icon when the content is highlighted.\nIf you do not select a texture, a default single-color texture will be used.\n(Recommended size: at least 267x89)",
-		[("Texture File", ".png .tpl .tex0 .bti .breft")], path.join(defaultFolder, "template_logo2.png"), "Skipped Logo 2.")
-	newManual = askForFile("Select Manual. This is the image/texture file of the controls screen, displayed after selecting a game.\nIf you do not select a texture, a default single-color texture will be used.\n(Recommended size: at least 640x480)",
-		[("Texture File", ".png .tpl .tex0 .bti .breft")], path.join(defaultFolder, "template_manual.png"), "Skipped Manual.")
+	if demoDiscType == 1:
+		logoSize = None
+		manualSize = (582, 276) if isGame else None
+		manualStr = "582x276" if isGame else None
+		screenshotSize = (145, 190)
+		screenshotStr = "145x190"
+	else:
+		logoSize = (276, 89)
+		logoStr = "276,89"
+		manualSize = (640, 480) if isGame else None
+		manualStr = "640x480" if isGame else None
+		screenshotSize = (340, 270) if demoDiscType == 2 else (456, 342)
+		screenshotStr = "340x270" if demoDiscType == 2 else "456x342"
+	newLogo1 = None
+	newLogo2 = None
+	newManual = None
+	newScreen = None
+	if logoSize is not None:
+		newLogo1 = askForFile("Select Logo 1. This is the menu icon when the content is not highlighted. If you do not select a texture, a default single-color texture will be used. (Recommended size: at least "+logoStr+")",
+			[("Texture File", ".png .tpl .tex0 .bti .breft")], logoSize, "Skipped Logo 1.")
+		newLogo2 = askForFile("Select Logo 2. This is the menu icon when the content is highlighted. If you do not select a texture, a default single-color texture will be used. (Recommended size: at least "+logoStr+")",
+			[("Texture File", ".png .tpl .tex0 .bti .breft")], logoSize, "Skipped Logo 2.")
+	if manualSize is not None:
+		newManual = askForFile("Select Manual. This is the image/texture file of the controls screen, displayed after selecting a game. If you do not select a texture, a default single-color texture will be used. (Recommended size: at least 640x480)",
+			[("Texture File", ".png .tpl .tex0 .bti .breft")], manualSize, "Skipped Manual.")
 
-	print("\n"+limitedString("Select Screen. This is the texture file containing up to four image(s) shown on the menu.\nIf you do not select a texture, a default single-color texture will be used.\n(Recommended size: at least 340x270 for earlier discs (they show the screenshot in a smaller window), or at least 640x480 for most discs (the entire background changes depending on the game))"))
+	print("\n"+limitedString("Select Screen. This is the texture file containing up to four image(s) shown on the menu. If you do not select a texture, a default single-color texture will be used. (Recommended size: at least "+screenshotStr+")"))
+	print(limitedString("When selecting multiple images, hold CTRL while clicking and select the images IN REVERSE ORDER."))
 	sleep(msgSleep)
 	while True:
 		newScreen = []
 		newScreen = askopenfilenames(filetypes=[("Texture File", ".png .tpl .tex0 .bti .breft")])
 		if len(newScreen) == 0:
-			newScreen = [path.join(defaultFolder, "template_screen.png")]
+			newScreen = screenshotSize
 		elif len(newScreen) > 4:
 			print("You can only select up to four images.")
 			continue
@@ -400,9 +428,10 @@ def askForFile(description, fTypes, defaultFile, skipText):
 	sleep(msgSleep)
 	return file
 
-def addNewContent(config_att, game, logo1, logo2, manual, screen, config_argument, config_memcard, config_timer, config_forcereset, config_rating, config_autorunProb, isEmulatedGBA=False, gbaErr="", gbaLoad="", gbaInd="", gbaDone="", gbaOverlay=""):
+def addNewContent(config_att, game, logo1, logo2, manual, screen, config_argument, config_memcard, config_timer, config_forcereset, config_rating, config_autorunProb, isEmulatedGBA=False, gbaErr="", gbaLoad="", gbaInd="", gbaDone="", gbaOverlay=None):
 	global contentArray
 
+	mkdir(tempImagesFolder)
 	# If the game is a GBA ROM, package and convert it to an ISO using the appropriate method
 	if path.splitext(game)[1] == ".gba":
 		if not isEmulatedGBA:
@@ -422,8 +451,13 @@ def addNewContent(config_att, game, logo1, logo2, manual, screen, config_argumen
 			game = path.join(currFolder, "apps", "output", listdir(path.join(currFolder, "apps", "output"))[0])
 		else:
 			gbaOverlayStr = ""
-			if gbaOverlay != "":
-				gbaOverlayStr = " -t \""+gbaOverlay+"\""
+			if gbaOverlay is not None:
+				if isinstance(gbaOverlay, str):
+					gbaOverlayStr = " -t \""+gbaOverlay+"\""
+				else:
+					img = Image.new('RGB', logo2, color = (153, 217, 234))
+					img.save(tempImagePath)
+					gbaOverlayStr = " -t \""+tempImagePath+"\""
 			subprocess.call('\"'+gbaEmulatorInjector+'\" -a \"'+game+'\" -c \"'+gbaEmulatorFile+'\"'+gbaOverlayStr)
 			game = path.join(currFolder, "apps", "output", listdir(path.join(currFolder, "apps", "output"))[0])
 	# Convert the game to TGC (if necessary) then rename+move it to the disc
@@ -448,42 +482,22 @@ def addNewContent(config_att, game, logo1, logo2, manual, screen, config_argumen
 	config_folder = path.splitext(config_filename)[0]
 	demoFolder = path.join(tempNewAdditionsFolder, config_folder)
 	mkdir(demoFolder)
+	finalLogo1Path = path.join(demoFolder, "logo.tpl")
+	finalLogo2Path = path.join(demoFolder, "logo2.tpl")
+	finalManualPath = path.join(demoFolder, "manual.tpl")
+	finalScreenPath = path.join(demoFolder, "screenshot.tpl" if demoDiscType == 1 else "screen.tpl")
+	gameName = ""
+	if isinstance(logo1, tuple) or isinstance(logo2, tuple):
+		gameName = input("What is the name of this game (what should be written on the default logo icon)?")
 	# Convert logo1 to TPL (if necessary) then rename+move it to demo folder
-	if logo1 != "":
-		if path.splitext(logo1)[1] != ".tpl":
-			print("Converting logo to TPL...")
-			subprocess.call('\"'+wimgt+'\" ENCODE \"'+logo1+'\" -d \"'+path.join(demoFolder, "logo.tpl")+'\" -x CMPR')
-		else:
-			shutil.copy(logo1, path.join(demoFolder, "logo.tpl"))
+	addTPL(logo1, "logo", finalLogo1Path, (34, 177, 76), gameName)
 	# Convert logo2 to TPL (if necessary) then rename+move it to demo folder
-	if logo2 != "":
-		if path.splitext(logo2)[1] != ".tpl":
-			print("Converting logo2 to TPL...")
-			subprocess.call('\"'+wimgt+'\" ENCODE \"'+logo2+'\" -d \"'+path.join(demoFolder, "logo2.tpl")+'\" -x CMPR')
-		else:
-			shutil.copy(logo2, path.join(demoFolder, "logo2.tpl"))
+	addTPL(logo2, "logo2", finalLogo2Path, (181, 230, 29), gameName)
 	# Convert manual to TPL (if necessary) then rename+move it to demo folder
-	if manual != "":
-		if path.splitext(manual)[1] != ".tpl":
-			print("Converting manual to TPL...")
-			subprocess.call('\"'+wimgt+'\" ENCODE \"'+manual+'\" -d \"'+path.join(demoFolder, "manual.tpl")+'\" -x CMPR')
-		else:
-			shutil.copy(manual, path.join(demoFolder, "manual.tpl"))
+	addTPL(manual, "manual", finalManualPath, (195, 195, 195), None)
 	# Convert screen to TPL (if necessary) then rename+move it to demo folder
-	config_screenshot ="NULL"
-	if len(screen) > 0:
-		config_screenshot = "screen.tpl"
-		if path.splitext(screen[0])[1] != ".tpl":
-			print("Converting screen to TPL in demo folder...")
-			tempTPLFolder = path.join(demoFolder, "new tpl")
-			createDir(tempTPLFolder)
-			shutil.copy(screen[0], path.join(tempTPLFolder, "image.png"))
-			for i in range(1, len(screen)):
-				shutil.copy(screen[i], path.join(tempTPLFolder, "image.mm"+str(i)+".png"))
-			subprocess.call('\"'+wimgt+'\" ENCODE \"'+path.join(tempTPLFolder, "image.png")+'\" -d \"'+path.join(demoFolder, "screen.tpl")+'\" -x CMPR') # TODO: Account for multiple screenshots here (right now it ignores anything after the first)
-			shutil.rmtree(tempTPLFolder)
-		else:
-			shutil.copy(screen[0], path.join(demoFolder, "screen.tpl"))
+	addTPL(screen, "screen", finalScreenPath, (153, 217, 234), None)
+	shutil.rmtree(tempImagesFolder)
 	# Create appropriate config file in demo folder
 	localConfFile = open(path.join(demoFolder, "local_conf.txt"), "w")
 	localConfFile.writelines("<ANIMATION_FRAMES> "+str(len(screen))+"\n")
@@ -507,6 +521,24 @@ def addNewContent(config_att, game, logo1, logo2, manual, screen, config_argumen
 	print("\nAdded new content to extracted disc.")
 	sleep(inputSleep)
 	inputHidden("Press Enter to continue.")
+
+def addTPL(original, originalType, finalPath, col=(128,128,128), text=None):
+	if original is not None:
+		if isinstance(original, str):
+			if path.splitext(original)[1] != ".tpl":
+				print("Converting "+originalType+" to TPL...")
+				subprocess.call('\"'+wimgt+'\" ENCODE \"'+original+'\" -d \"'+finalPath+'\" -x CMPR')
+			else:
+				shutil.copy(original, finalPath)
+		else:
+			print("Converting default "+originalType+" to TPL...")
+			img = Image.new('RGB', original, color=col)
+			if text is not None:
+				fnt = ImageFont.truetype(arialFont, 15)
+				imgText = ImageDraw.Draw(img)
+				imgText.text((10,10), text, font=fnt, fill=(255,255,0)) # TODO: This is a placeholder!
+			img.save(tempImagePath)
+			subprocess.call('\"'+wimgt+'\" ENCODE \"'+tempImagePath+'\" -d \"'+finalPath+'\" -x CMPR')
 
 def integrateFromContentArray():
 	global discSize
