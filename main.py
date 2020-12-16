@@ -40,14 +40,22 @@ maxSize = 1425760.0/1024
 def main():
 	global discSize
 
-	Tk().withdraw()
+	# Tk().withdraw()
 	manageDemoDisc()
 	discSize = getDirSize(demoDiscFolder)/1024.0/1024
 	while True:
-		clearScreen()
+		initScreen()
 		setOriginalContents()
 		printOriginalContents()
-		choice = makeChoice("What would you like to do?", ["Add content to disc", "Remove content from disc", "Build disc", "Change disc settings", ("Enable" if useDefaultSettings else "Disable")+" advanced settings", "Help (Contents)", "Quit"])
+		choice = makeChoice("Select an option.", [
+			"Add content to disc",
+			"Remove content from disc",
+			"Build disc",
+			"Change disc settings",
+			("Enable" if useDefaultSettings else "Disable")+" advanced settings",
+			"Help (Contents)",
+			"Credits",
+			"Exit"])
 		if choice == 1:
 			prepareNewContent()
 		elif choice == 2:
@@ -60,6 +68,8 @@ def main():
 			changeDefaultContentSettings()
 		elif choice == 6:
 			printHelpContents()
+		elif choice == 7:
+			printCredits()
 		else:
 			sys.exit()
 
@@ -82,7 +92,7 @@ def manageDemoDisc():
 	global integrateExe
 	global integratedFile
 
-	clearScreen()
+	initScreen()
 	if path.exists(tempDemoDiscFolder):
 		choice = makeChoice("Please make a selection.", ["Import Gamecube Demo Disc ISO/GCM", "Use extracted disc from temp folder"])
 	else:
@@ -588,6 +598,12 @@ def changeDefaultContentSettings():
 			print("Default settings enabled.")
 			sleep(msgSleep)
 
+def initScreen():
+	clearScreen()
+	print()
+	printTitle("Gamecube Demo Disc Tool")
+	print()
+
 def printOriginalContents(printHeader=True):
 	print("\nCurrent demo disc contents:")
 	if len(contentArray) == 0:
@@ -614,6 +630,31 @@ def printHelpContents():
 	print("\nAUTORUN PROB. - The frequency of this content auto-playing if no buttons are pressed on the menu;")
 	print("                  0 (never; recommended for games) through 5 (often; recommended for movies)")
 	inputHidden("\nPress Enter to continue.")
+
+def printCredits():
+	clearScreen()
+	print("\nGamecube Demo Disc Tool")
+	print("Made by GateGuy")
+	print("https://github.com/GateGuy/GCDemoDiscTool")
+	print("\nGC-GBA EmuInjector")
+	print("Made by GateGuy")
+	print("https://github.com/GateGuy/GC-GBA-EmuInjector")
+	print("\nGC-GBA TransferInjector")
+	print("Made by GateGuy")
+	print("https://github.com/GateGuy/GC-GBA-TransferInjector")
+	print("\nGamecube ISO Tool")
+	print("Made by FIG2K4")
+	print("http://www.wiibackupmanager.co.uk/gcit.html")
+	print("\nGCMtoTGC")
+	print("Made by Zochwar & Plootid")
+	print("https://www.gc-forever.com/forums/viewtopic.php?t=17&start=24")
+	print("\nTGCtoGCM")
+	print("Made by Zochwar & Plootid")
+	print("https://www.gc-forever.com/forums/viewtopic.php?t=17&start=24")
+	print("\nWiimms Image Tool")
+	print("Made by Wiimm")
+	print("https://szs.wiimm.de/wimgt/")
+	inputHidden("")
 
 if __name__ == '__main__':
 	main()

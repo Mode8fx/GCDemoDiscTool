@@ -1,6 +1,8 @@
 import sys
 import os
 from os import path, mkdir, listdir, rmdir
+from getpass import getpass as inputHidden
+import math
 
 ##############
 # USER INPUT #
@@ -231,16 +233,16 @@ def verifySeed(seed, maxValueArray, base=10):
 		The number in the given base.
 """
 def dec_to_base(num,base):  #Maximum base - 36
-    base_num = ""
-    while num>0:
-        dig = int(num%base)
-        if dig<10:
-            base_num += str(dig)
-        else:
-            base_num += chr(ord('A')+dig-10)  #Using uppercase letters
-        num //= base
-    base_num = base_num[::-1]  #To reverse the string
-    return base_num
+	base_num = ""
+	while num>0:
+		dig = int(num%base)
+		if dig<10:
+			base_num += str(dig)
+		else:
+			base_num += chr(ord('A')+dig-10)  #Using uppercase letters
+		num //= base
+	base_num = base_num[::-1]  #To reverse the string
+	return base_num
 
 ########################
 # FILE/PATH MANAGEMENT #
@@ -359,16 +361,21 @@ def getPathArray(p):
 	----------
 	p : str
 		The path of the folder that will be created.
+
+	Returns
+	-------
+	True if the folder was created, False if it already exists.
 """
 def createDir(p):
 	if path.isdir(p):
-		return
+		return False
 	pathArray = getPathArray(p)
 	currPath = pathArray[0]
 	for i in range(1, len(pathArray)):
 		currPath = path.join(currPath, pathArray[i])
 		if not path.isdir(currPath):
 			mkdir(currPath)
+	return True
 
 """
 	Returns the directory containing the current program, regardless of whether it is a standalone script or a wrapped executable.
@@ -424,14 +431,14 @@ def getFileExt(folder, fileName):
 		The number of bytes taken up by the directory.
 """
 def getDirSize(startPath = '.'):
-    totalSize = 0
-    for dirpath, dirnames, filenames in os.walk(startPath):
-        for f in filenames:
-            fp = os.path.join(dirpath, f)
-            # skip if it is symbolic link
-            if not os.path.islink(fp):
-                totalSize += os.path.getsize(fp)
-    return totalSize
+	totalSize = 0
+	for dirpath, dirnames, filenames in os.walk(startPath):
+		for f in filenames:
+			fp = os.path.join(dirpath, f)
+			# skip if it is symbolic link
+			if not os.path.islink(fp):
+				totalSize += os.path.getsize(fp)
+	return totalSize
 
 ####################
 # ARRAY MANAGEMENT #
@@ -507,14 +514,14 @@ def mergeNestedArray(arr, finalArr=[]):
 		How many instances of this element there are in the array.
 """
 def most_frequent(arr): 
-    counter = 0
-    elem = arr[0]
-    for i in arr:
-        curr_frequency = arr.count(i)
-        if (curr_frequency > counter):
-            counter = curr_frequency
-            elem = i
-    return elem, counter
+	counter = 0
+	elem = arr[0]
+	for i in arr:
+		curr_frequency = arr.count(i)
+		if (curr_frequency > counter):
+			counter = curr_frequency
+			elem = i
+	return elem, counter
 
 """
 	Returns whether or not arr1 is an ordered subset of arr2.
@@ -577,6 +584,171 @@ def delete_last_lines(n=1):
 	for _ in range(n): 
 		sys.stdout.write('\x1b[1A')
 		sys.stdout.write('\x1b[2K')
+
+#######################
+# STRING MANIPULATION #
+#######################
+
+"""
+	Prints a title surrounded by a certain character.
+
+	Parameters
+	----------
+	string : str
+		The string that is printed.
+	char : str
+		The one-character string that surrounds the string.
+
+	Example
+	-------
+	Input
+		"MY TITLE", "#"
+	Output
+		############
+		# MY TITLE #
+		############
+"""
+def printTitle(string, topBottomChar="#", sideChar="#", cornerChar="#"):
+	topBottom = cornerChar+(topBottomChar*(len(string)+2))+cornerChar
+	print(topBottom)
+	print(sideChar+" "+string+" "+sideChar)
+	print(topBottom)
+
+"""
+	Returns the base string with either the singular or plural suffix depending on the value of num.
+
+	Parameters
+	----------
+	base : str
+		The base of the word.
+	num : int
+		The quantity of the desired word.
+	singularSuffix : str
+		The suffix of the word's singular form
+	pluralSuffix : str
+		The suffix of the word's plural form
+
+	Returns
+	-------
+	str
+		The resulting string
+
+	Examples
+	--------
+	Input 1
+		pluralize("ind", 1, "ex", "ices")
+	Output 1
+		"index"
+	Input 2
+		pluralize("ind", 2, "ex", "ices")
+	Output 2
+		"indices"
+
+"""
+def pluralize(base, num, singularSuffix="", pluralSuffix="s"):
+	return base+singularSuffix if num == 1 else base+pluralSuffix
+
+"""
+	Creates a copy of a given string, automatically adding line breaks and indenting lines as necessary, without splitting any words in two.
+
+	Parameters
+	----------
+	string : str
+		The string to be printed.
+	lineLength : int
+		The max length of each printed line.
+	firstLineIndent : str
+		The start of the first line.
+	lineIndent : str
+		The start of all subsequent lines.
+
+	Returns
+	-------
+	The output string if it can be created with the given parameters, False otherwise.
+
+	Examples
+	--------
+	Input 1
+		limitedString("Strong Bad's test sentence is as follows: The fish was delish, and it made quite a dish.", 40, "? ", ". ! ")
+	Output 1
+		"? Strong Bad's test sentence is as\n. ! follows: The fish was delish, and it\n. ! made quite a dish."
+		(Which would look like the following when printed):
+		? Strong Bad's test sentence is as
+		. ! follows: The fish was delish, and it
+		. ! made quite a dish.
+	Input 1
+		limitedString("THIS_WORD_IS_TOO_LONG", 15, "", "")
+	Output:
+		False
+"""
+def limitedString(string, lineLength=80, firstLineIndent="", lineIndent="  "):
+	printArray = string.split(" ")
+	if len(printArray[0]) > lineLength - len(firstLineIndent):
+		return False
+	for elem in printArray[1:]:
+		if len(elem) > lineLength - len(lineIndent):
+			return False
+	totalString = ""
+	currString = firstLineIndent
+	isStartOfLine = True
+	while len(printArray) > 0:
+		if len(printArray[0]) + (not isStartOfLine) <= lineLength - len(currString):
+			currString += (" " if not isStartOfLine else "")+printArray.pop(0)
+			isStartOfLine = False
+		else:
+			totalString += currString+"\n"
+			currString = lineIndent
+			isStartOfLine = True
+	totalString += currString
+	return totalString
+
+"""
+	Returns a string indicating the input number of bytes in its most significant form, rounding up to the indicated number of decimal places.
+	For example, if numBytes is at least 1 MB but less than 1 GB, it will be displayed in MB.
+
+	Parameters
+	----------
+	numBytes : int
+		The number of bytes.
+	decimalPlaces : int
+		The number of decimal places to round to.
+
+	Retruns
+	-------
+	str
+		The number of the most significant data size, along with the data size itself.
+
+	Examples
+	--------
+	Input 1
+		5000000, 3
+	Output 1
+		4.769 MB
+	Input 2
+		2048, 1
+	Output 2
+		2 KB
+	Input 3
+		2049, 1
+	Output 3
+		2.1 KB
+"""
+def simplifyNumBytes(numBytes, decimalPlaces=2):
+	numBytes = float(numBytes)
+	byteTypeArray = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"]
+	temp = (10.0**decimalPlaces)
+	for byteType in byteTypeArray:
+		if numBytes < 1024:
+			num = math.ceil(numBytes * temp) / temp
+			if num == int(num):
+				num = int(num)
+			return str(num)+" "+byteType
+		numBytes /= 1024.0
+	numBytes *= 1024
+	num = math.ceil(numBytes * temp) / temp
+	if num == int(num):
+		num = int(num)
+	return str(num)+" YB"
 
 """
 SOURCES
