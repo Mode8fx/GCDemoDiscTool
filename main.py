@@ -317,16 +317,16 @@ def buildDisc():
 def askForTextures(isGame=True):
 	if demoDiscType == 1:
 		logoSize = None
-		manualSize = (582, 276) if isGame else None
+		manualSize = (1, 1) if isGame else None
 		manualStr = "582x276" if isGame else None
-		screenshotSize = (145, 190)
+		screenshotSize = (1, 1)
 		screenshotStr = "145x190"
 	else:
 		logoSize = (276, 89)
 		logoStr = "276,89"
-		manualSize = (640, 480) if isGame else None
+		manualSize = (1, 1) if isGame else None
 		manualStr = "640x480" if isGame else None
-		screenshotSize = (340, 270) if demoDiscType == 2 else (456, 342)
+		screenshotSize = (1, 1)
 		screenshotStr = "340x270" if demoDiscType == 2 else "456x342"
 	newLogo1 = None
 	newLogo2 = None
@@ -334,14 +334,14 @@ def askForTextures(isGame=True):
 	newScreen = None
 	if logoSize is not None:
 		newLogo1 = askForFile("Select Logo 1. This is the menu icon when the content is not highlighted. If you do not select a texture, a default single-color texture with the game's name will be used. (Recommended size: at least "+logoStr+")",
-			[("Texture File", ".png .tpl .tex0 .bti .breft")], logoSize, "Skipped Logo 1.")
+			[("Texture File", ".png .tpl .tex0 .bti .breft")], logoSize, "Using default Logo 1.")
 		newLogo2 = askForFile("Select Logo 2. This is the menu icon when the content is highlighted. If you do not select a texture, a default single-color texture with the game's name will be used. (Recommended size: at least "+logoStr+")",
-			[("Texture File", ".png .tpl .tex0 .bti .breft")], logoSize, "Skipped Logo 2.")
+			[("Texture File", ".png .tpl .tex0 .bti .breft")], logoSize, "Using default Logo 2.")
 	if manualSize is not None:
 		newManual = askForFile("Select Manual. This is the image/texture file of the controls screen, displayed after selecting a game. If you do not select a texture, a default single-color texture will be used. (Recommended size: at least 640x480)",
-			[("Texture File", ".png .tpl .tex0 .bti .breft")], manualSize, "Skipped Manual.")
+			[("Texture File", ".png .tpl .tex0 .bti .breft")], manualSize, "Using default Manual.")
 
-	print("\n"+limitedString("Select Screen. This is the texture file containing up to four image(s) shown on the menu. If you do not select a texture, a default single-color texture will be used. (Recommended size: at least "+screenshotStr+")"))
+	print("\n"+limitedString("Select Screen (screenshots). This is the texture file containing up to four image(s) shown on the menu. If you do not select a texture, a default single-color texture will be used. (Recommended size: at least "+screenshotStr+")"))
 	print(limitedString("When selecting multiple images, hold CTRL while clicking and select the images IN REVERSE ORDER."))
 	sleep(inputSleep)
 	while True:
@@ -349,6 +349,8 @@ def askForTextures(isGame=True):
 		newScreen = list(askopenfilenames(filetypes=[("Texture File", ".png .tpl .tex0 .bti .breft")]))
 		if len(newScreen) == 0:
 			newScreen = screenshotSize
+			print("Using default screen.")
+			break
 		elif len(newScreen) > 4:
 			print("You can only select up to four images.")
 			continue
@@ -428,6 +430,11 @@ def askForFile(description, fTypes, defaultFile, skipText):
 def addNewContent(config_att, game, logo1, logo2, manual, screen, config_argument, config_memcard, config_timer, config_forcereset, config_rating, config_autorunProb, isEmulatedGBA=False, gbaErr="", gbaLoad="", gbaInd="", gbaDone="", gbaOverlay=None):
 	global contentArray
 	createDir(tempImagesFolder)
+	gameName = ""
+	if isinstance(logo1, tuple) or isinstance(logo2, tuple):
+		while gameName == "":
+			print("\nWhat is the name of this game (what should be written on the default logo icon)?")
+			gameName = input("")
 	# If the game is a GBA ROM, package and convert it to an ISO using the appropriate method
 	if path.splitext(game)[1] == ".gba":
 		if not isEmulatedGBA:
@@ -482,13 +489,10 @@ def addNewContent(config_att, game, logo1, logo2, manual, screen, config_argumen
 	finalLogo2Path = path.join(demoFolder, "logo2.tpl")
 	finalManualPath = path.join(demoFolder, "manual.tpl")
 	finalScreenPath = path.join(demoFolder, "screenshot.tpl" if demoDiscType == 1 else "screen.tpl")
-	gameName = ""
-	if isinstance(logo1, tuple) or isinstance(logo2, tuple):
-		gameName = input("What is the name of this game (what should be written on the default logo icon)?")
 	# Convert logo1 to TPL (if necessary) then rename+move it to demo folder
 	addTPL(logo1, "logo", finalLogo1Path, (34, 177, 76), gameName)
 	# Convert logo2 to TPL (if necessary) then rename+move it to demo folder
-	addTPL(logo2, "logo2", finalLogo2Path, (181, 230, 29), gameName)
+	addTPL(logo2, "logo2", finalLogo2Path, (108, 202, 53), gameName)
 	# Convert manual to TPL (if necessary) then rename+move it to demo folder
 	addTPL(manual, "manual", finalManualPath, (195, 195, 195), None)
 	# Convert screen to TPL (if necessary) then rename+move it to demo folder
@@ -512,7 +516,7 @@ def addNewContent(config_att, game, logo1, logo2, manual, screen, config_argumen
 	shutil.rmtree(tempImagesFolder)
 	# Create appropriate config file in demo folder
 	localConfFile = open(path.join(demoFolder, "local_conf.txt"), "w")
-	localConfFile.writelines("<ANIMATION_FRAMES> "+str(len(screen))+"\n")
+	localConfFile.writelines("<ANIMATION_FRAMES> "+str(len(screen) if isinstance(screen, list) else 1)+"\n")
 	localConfFile.writelines("<ANIMATION_INTERVAL> 120\n")
 	localConfFile.writelines("<ANIMATION_SWITCHING_INTERVAL> 30\n")
 	localConfFile.writelines("<ANIMATION_TYPE> FADE_IN\n")
@@ -549,23 +553,25 @@ def addTPL(original, originalType, finalPath, col=(128,128,128), text=None):
 				fnt = ImageFont.truetype(arialFont, 24)
 				imgText = ImageDraw.Draw(img)
 				textLength, textHeight = fnt.getsize(text)
+				halfOriginalY = original[1]/2
+				textFill = (255, 255, 255)
 				if textLength < original[0]*.9:
-					imgText.text(((original[0]-textLength)/2, (original[1]-textHeight)/2), text, font=fnt, fill=(255, 255, 255))
+					imgText.text(((original[0]-textLength)/2, halfOriginalY-(textHeight*.5)), text, font=fnt, fill=textFill)
 				else:
 					textArray = splitStringIntoParts(text, 2, True)
 					if all(fnt.getsize(t)[0] < original[0]*.9 for t in textArray):
 						textLength, textHeight = fnt.getsize(textArray[0])
-						imgText.text(((original[0]-textLength)/2, (original[1]-textHeight)/2), textArray[0], font=fnt, fill=(255, 255, 255))
+						imgText.text(((original[0]-textLength)/2, halfOriginalY-textHeight), textArray[0], font=fnt, fill=textFill)
 						textLength, textHeight = fnt.getsize(textArray[1])
-						imgText.text(((original[0]-textLength)/2, (original[1]+textHeight)/2), textArray[1], font=fnt, fill=(255, 255, 255))
+						imgText.text(((original[0]-textLength)/2, halfOriginalY), textArray[1], font=fnt, fill=textFill)
 					else:
 						textArray = splitStringIntoParts(text, 3, True)
 						textLength, textHeight = fnt.getsize(textArray[0])
-						imgText.text(((original[0]-textLength)/2, (original[1]/2)-(textHeight*1.5)), textArray[0], font=fnt, fill=(255, 255, 255))
+						imgText.text(((original[0]-textLength)/2, halfOriginalY-(textHeight*1.5)), textArray[0], font=fnt, fill=textFill)
 						textLength, textHeight = fnt.getsize(textArray[1])
-						imgText.text(((original[0]-textLength)/2, (original[1]/2)-(textHeight*.5)), textArray[1], font=fnt, fill=(255, 255, 255))
+						imgText.text(((original[0]-textLength)/2, halfOriginalY-(textHeight*.5)), textArray[1], font=fnt, fill=textFill)
 						textLength, textHeight = fnt.getsize(textArray[2])
-						imgText.text(((original[0]-textLength)/2, (original[1]/2)+(textHeight*.5)), textArray[2], font=fnt, fill=(255, 255, 255))
+						imgText.text(((original[0]-textLength)/2, halfOriginalY+(textHeight*.5)), textArray[2], font=fnt, fill=textFill)
 			img.save(tempImagePath)
 			subprocess.call('\"'+wimgt+'\" ENCODE \"'+tempImagePath+'\" -d \"'+finalPath+'\" -x CMPR')
 
@@ -720,6 +726,7 @@ def printHelpContents():
 	print("\n"+limitedString("TIMER         - The amount of time in minutes before the content auto-quits back to the menu; 0 for unlimited or movie", 80, "", "                "))
 	print("\n"+limitedString("ESRB RATING   - The ESRB rating", 80, "", "                "))
 	print("\n"+limitedString("AUTORUN PROB. - The frequency of this content auto-playing if no buttons are pressed on the menu; 0 (never; recommended for games) through 5 (often; recommended for movies)", 80, "", "                "))
+	print("\n"+limitedString("Note: The \"Disc space used\" is only an estimate, and the output will actually take up slightly more space. Try to have a buffer of at least 4 MB before building a disc (if the output is larger than 1,425,760 KB, it's too big)."))
 	inputHidden("\nPress Enter to continue.")
 
 def printCredits():
