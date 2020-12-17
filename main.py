@@ -15,17 +15,19 @@ from PIL import Image, ImageDraw, ImageFont
 ratingArray = ["RATING_PENDING", "EARLY_CHILDHOOD", "EVERYONE", "TEEN", "ADULTS_ONLY"]
 
 currFolder = getCurrFolder()
-gcit = path.join(currFolder, "apps", "gcit.exe")
-gcmtotgc = path.join(currFolder, "apps", "gcmtotgc.exe")
-tgctogcm = path.join(currFolder, "apps", "tgctogcm.exe")
-wimgt = path.join(currFolder, "apps", "wimgt.exe")
 outputFolder = path.join(currFolder, "output")
-gbaTransferInjector = path.join(currFolder, "apps", "GCGBA_ti.py")
-gbaTransferFile = path.join(currFolder, "apps", "wario_agb.tgc")
-gbaEmulatorInjector = path.join(currFolder, "apps", "GCGBA_ei.py")
-gbaEmulatorFile1 = path.join(currFolder, "apps", "zz_MarioVSDonkey_game.tgc")
-gbaEmulatorFile2 = path.join(currFolder, "apps", "zz_MarioPinballLand_game.tgc")
-arialFont = path.join(currFolder, "apps", "arial.ttf")
+
+gcit = path.join(currFolder, "tools", "Gamecube ISO Tool", "gcit.exe")
+gcmtotgc = path.join(currFolder, "tools", "gcmtotgc.exe")
+tgctogcm = path.join(currFolder, "tools", "tgctogcm.exe")
+wimgt = path.join(currFolder, "tools", "Wiimms Image Tool", "wimgt.exe")
+arialFont = path.join(currFolder, "tools", "arial.ttf")
+
+gbaEmulatorInjector = path.join(currFolder, "tools", "GC-GBA EmuInjector", "GCGBA_ei.py")
+gbaEmulatorFile1 = path.join(currFolder, "tools", "GC-GBA EmuInjector", "zz_MarioVSDonkey_game.tgc")
+gbaEmulatorFile2 = path.join(currFolder, "tools", "GC-GBA EmuInjector", "zz_MarioPinballLand_game.tgc")
+gbaTransferInjector = path.join(currFolder, "tools", "GC-GBA TransferInjector", "GCGBA_ti.py")
+gbaTransferFile = path.join(currFolder, "tools", "GC-GBA TransferInjector", "wario_agb.tgc")
 
 tempFolder = path.join(currFolder, "temp")
 tempDemoDiscFolder = path.join(tempFolder, "DemoDiscGcReEx")
@@ -188,7 +190,7 @@ def prepareNewContent():
 		elif path.exists(gbaEmulatorFile2):
 			gbaEmulatorFile = gbaEmulatorFile2
 		else:
-			print("\n"+limitedString("GBA emulator file not found. For more information, read '/apps/PUT MvDK OR MPL DEMO HERE.txt'"))
+			print("\n"+limitedString("GBA emulator file not found. For more information, read '/tools/GC-GBA EmuInjector/PUT MvDK OR MPL DEMO HERE.txt'"))
 			sleep(inputSleep)
 			inputHidden("Action cancelled. Press Enter to continue.")
 			return
@@ -217,7 +219,7 @@ def prepareNewContent():
 				addNewContent("<GAME>", newGCGame, newLogo, newLogo2, newManual, newScreen, argument, memcard, timer, forcereset, rating, autorunProb, isEmulatedGBA=True, gbaOverlay=f_02)
 	elif choice == 3:
 		if not path.exists(gbaTransferFile):
-			print("\n"+limitedString("GBA transfer file not found. For more information, read '/apps/PUT wario_agb.tgc HERE.txt'"))
+			print("\n"+limitedString("GBA transfer file not found. For more information, read '/tools/GC-GBA TransferInjector/PUT wario_agb.tgc HERE.txt'"))
 			sleep(inputSleep)
 			inputHidden("Action cancelled. Press Enter to continue.")
 		print("\nPlease select a GBA ROM File.")
@@ -438,7 +440,7 @@ def addNewContent(config_att, game, logo1, logo2, manual, screen, config_argumen
 			if gbaDone != "":
 				gbaDoneStr = " --done \""+gbaDone+"\""
 			subprocess.call('\"'+gbaTransferInjector+'\" -a \"'+game+'\" -c \"'+gbaTransferFile+'\"'+gbaErrStr+gbaLoadStr+gbaIndStr+gbaDoneStr)
-			game = path.join(currFolder, "apps", "output", listdir(path.join(currFolder, "apps", "output"))[0])
+			game = path.join(currFolder, "tools", "output", listdir(path.join(currFolder, "tools", "output"))[0])
 		else:
 			gbaOverlayStr = ""
 			if gbaOverlay is not None:
@@ -449,7 +451,7 @@ def addNewContent(config_att, game, logo1, logo2, manual, screen, config_argumen
 					img.save(tempImagePath)
 					gbaOverlayStr = " -t \""+tempImagePath+"\""
 			subprocess.call('\"'+gbaEmulatorInjector+'\" -a \"'+game+'\" -c \"'+gbaEmulatorFile+'\"'+gbaOverlayStr)
-			game = path.join(currFolder, "apps", "output", listdir(path.join(currFolder, "apps", "output"))[0])
+			game = path.join(currFolder, "tools", "output", listdir(path.join(currFolder, "tools", "output"))[0])
 	# Convert the game to TGC (if necessary) then rename+move it to the disc
 	print("\nCopying game file to temp folder...")
 	oldGame = game

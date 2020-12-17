@@ -1,1 +1,0 @@
-In order to package a GBA ROM into a Gamecube ISO for transfer to a GBA, you must extract wario_agb.tgc (the WarioWare Inc. Mega Microgames demo) (.iso and .gcm will also work) from the Nintendo Gamecube Preview Disc and place it in this directory.

@@ -1,3 +1,0 @@
-In order to package a GBA game for use in the Gamecube's GBA emulator, you must extract zz_MarioVSDonkey_game.tgc (the Mario vs. Donkey Kong demo) (.iso and .gcm will also work) from Interactive Multi-Game Demo Disc Version 16 and place it in this directory.
-
-zz_MarioPinballLand_game.tgc/iso/gcm (the Mario Pinball Land demo) from Interactive Multi-Game Demo Disc Version 17/18 will also work.
