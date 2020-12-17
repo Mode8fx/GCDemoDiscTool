@@ -748,6 +748,61 @@ def shorten(string, maxLength=10, suffixChar='.', suffixLength=3, cutoff=True):
 	return shortened+(suffixChar*suffixLength)
 
 """
+	Splits a string into multiple parts, with each part being about equal in length, and no words cut off in the middle.
+
+	Parameters
+	----------
+	string : str
+		The string to be split.
+	numParts : int
+		The number of parts to split the string into.
+	reverse : bool
+		Decide if the last part (False) or first part (True) is likely to be the longest part.
+
+	Returns
+	-------
+	list
+		The split string.
+
+	Examples
+	--------
+	Input 1
+		splitStringIntoParts("This string is split into three whole parts", 3, True)
+	Output 1
+		['This string is split', 'into three', 'whole parts']
+	Input 2
+		splitStringIntoParts("This string is split into three whole parts", 3, False)
+	Output 2
+		['This string', 'is split into', 'three whole parts']
+"""
+def splitStringIntoParts(string, numParts=2, reverse=False):
+	totalLen = len(string) - (numParts-1)
+	maxSubStringLength = math.ceil(totalLen/numParts)
+	stringArray = string.split(" ")
+	if reverse:
+		stringArray.reverse()
+	splitArray = []
+	currString = ""
+	offset = 0
+	while len(stringArray) > 0:
+		if len(currString) + (currString != "") + len(stringArray[0]) < maxSubStringLength + offset:
+			currString += (" " if currString != "" else "")+stringArray.pop(0)
+		else:
+			offset = (maxSubStringLength + offset) - (len(currString) + (currString != ""))
+			splitArray.append(currString)
+			currString = ""
+	splitArray[-1] += " "+currString
+	if reverse:
+		newSplitArray = []
+		while len(splitArray) > 0:
+			curr = splitArray.pop(-1).split(" ")
+			curr.reverse()
+			curr = " ".join(curr)
+			newSplitArray.append(curr)
+		return newSplitArray
+	return splitArray
+
+"""
 	Returns a string indicating the input number of bytes in its most significant form, rounding up to the indicated number of decimal places.
 	For example, if numBytes is at least 1 MB but less than 1 GB, it will be displayed in MB.
 

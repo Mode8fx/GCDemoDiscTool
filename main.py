@@ -42,7 +42,6 @@ maxSize = 1425760.0/1024
 
 def main():
 	global discSize
-
 	Tk().withdraw()
 	manageDemoDisc()
 	discSize = getDirSize(demoDiscFolder)/1024.0/1024
@@ -94,12 +93,7 @@ def initTempFolder(initNewOnly=False):
 	mkdir(tempImagesFolder)
 
 def manageDemoDisc():
-	global demoDiscFolder
-	global demoDiscType
-	global contentsFile
-	global integrateExe
-	global integratedFile
-
+	global demoDiscFolder, demoDiscType, contentsFile, integrateExe, integratedFile
 	initScreen()
 	tempDDFContents = listdir(tempDemoDiscFolder)
 	if path.exists(tempDemoDiscFolder) and len([f for f in tempDDFContents if path.isdir(path.join(tempDemoDiscFolder, f))]) > 0:
@@ -146,7 +140,6 @@ def manageDemoDisc():
 
 def setOriginalContents():
 	global contentArray
-
 	contentArray = []
 	if not path.isfile(contentsFile):
 		print("Default contents.txt not found. Creating new file.")
@@ -169,7 +162,6 @@ def setOriginalContents():
 
 def prepareNewContent():
 	global gbaEmulatorFile
-
 	choice = makeChoice("Which type of content would you like to add?",
 		["Gamecube ISO/GCM/TGC File",
 		"GBA ROM (for use in official emulator)",
@@ -279,7 +271,6 @@ def removeContent():
 
 def buildDisc():
 	global contentArray
-
 	if discSize > maxSize:
 		print("\nThe contents of the extracted disc take up too much space.")
 		print(limitedString("If you created a screen.tpl with more than one image, and you are only a few MB over the allocated space, you may want to manually open the TPL with a program like BrawlBox and change the format of each texture to CMPR (the default is RGB5A3, which takes up more space)."))
@@ -430,7 +421,6 @@ def askForFile(description, fTypes, defaultFile, skipText):
 
 def addNewContent(config_att, game, logo1, logo2, manual, screen, config_argument, config_memcard, config_timer, config_forcereset, config_rating, config_autorunProb, isEmulatedGBA=False, gbaErr="", gbaLoad="", gbaInd="", gbaDone="", gbaOverlay=None):
 	global contentArray
-
 	mkdir(tempImagesFolder)
 	# If the game is a GBA ROM, package and convert it to an ISO using the appropriate method
 	if path.splitext(game)[1] == ".gba":
@@ -534,15 +524,31 @@ def addTPL(original, originalType, finalPath, col=(128,128,128), text=None):
 			print("Converting default "+originalType+" to TPL...")
 			img = Image.new('RGB', original, color=col)
 			if text is not None:
-				fnt = ImageFont.truetype(arialFont, 15)
+				fnt = ImageFont.truetype(arialFont, 24)
 				imgText = ImageDraw.Draw(img)
-				imgText.text((10,10), text, font=fnt, fill=(255,255,0)) # TODO: This is a placeholder!
+				textLength, textHeight = fnt.getsize(text)
+				if textLength < original[0]*.9:
+					imgText.text(((original[0]-textLength)/2, (original[1]-textHeight)/2), text, font=fnt, fill=(255, 255, 255))
+				else:
+					textArray = splitStringIntoParts(text, 2, True)
+					if all(fnt.getsize(t)[0] < original[0]*.9 for t in textArray):
+						textLength, textHeight = fnt.getsize(textArray[0])
+						imgText.text(((original[0]-textLength)/2, (original[1]-textHeight)/2), textArray[0], font=fnt, fill=(255, 255, 255))
+						textLength, textHeight = fnt.getsize(textArray[1])
+						imgText.text(((original[0]-textLength)/2, (original[1]+textHeight)/2), textArray[1], font=fnt, fill=(255, 255, 255))
+					else:
+			            textArray = splitStringIntoParts(text, 3, True)
+			            textLength, textHeight = fnt.getsize(textArray[0])
+			            imgText.text(((original[0]-textLength)/2, (original[1]/2)-(textHeight*1.5)), textArray[0], font=fnt, fill=(255, 255, 255))
+			            textLength, textHeight = fnt.getsize(textArray[1])
+			            imgText.text(((original[0]-textLength)/2, (original[1]/2)-(textHeight*.5)), textArray[1], font=fnt, fill=(255, 255, 255))
+			            textLength, textHeight = fnt.getsize(textArray[2])
+			            imgText.text(((original[0]-textLength)/2, (original[1]/2)+(textHeight*.5)), textArray[2], font=fnt, fill=(255, 255, 255))
 			img.save(tempImagePath)
 			subprocess.call('\"'+wimgt+'\" ENCODE \"'+tempImagePath+'\" -d \"'+finalPath+'\" -x CMPR')
 
 def integrateFromContentArray():
 	global discSize
-
 	# newLine = config_att+"\t"+config_folder+"\t"+config_filename+"\t"+config_argument+"\t"+config_screenshot+"\t"+config_memcard+"\t"+str(config_timer)+"\t"+config_forcereset+"\t"+config_rating+"\t"+str(config_autorunProb)+"\n"
 	cFile = open(contentsFile, "w")
 	cFile.writelines("#att	folder			tgc_filename			argument screenshot	memcard	timer	forcereset 	rating	autorun_porbability\n")
@@ -628,7 +634,6 @@ def changeDiscSettings():
 
 def changeDefaultContentSettings():
 	global useDefaultSettings
-
 	if useDefaultSettings:
 		print("Default settings are enabled.")
 		print("Memory Card           - Enabled")
