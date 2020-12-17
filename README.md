@@ -4,7 +4,7 @@ This is a Windows utility that allows you to modify, add, or remove contents on 
 ![](https://github.com/GateGuy/GCDemoDiscTool/blob/main/screenshot.png)
 
 ### Features
-- Add any Gamecube ISO/GCM file to a demo disc, along with the appropriate menu graphics (icons, etc.)
+- Add any Gamecube ISO/GCM/TGC file to a demo disc, along with the appropriate menu graphics (icons, etc.), or you can use default graphics
 - Inject a GBA ROM (16 MB or less) into the official GBA emulator found on some demo discs
 - Inject a GBA ROM (256 KB or less) into the GBA demo found on the Preview Disc for transfer to a GBA using the link cable
 - Optionally set a timer or disable use of the memory card on a per-game basis, like the original kiosks
@@ -27,5 +27,6 @@ Additionally, the remaining tools are made by me and were (very slightly) modifi
 
 ### Known Bugs/Issues
 - Because the demo disc uses an internal ID that is different from any of its content, save files will look for this ID; in other words, a save file created for a game will not be compatible with a version of that game that exists on a generated demo disc
-- ESRB rating icons (the ones that appear onscreen after selecting a game) may have incorrect sizes
+- ESRB rating icons (the ones that appear onscreen after selecting a game) may have incorrect sizes depending on the original demo disc used (the common Preview Disc is confirmed to look normal)
 - TPL texture files generated from multiple images take up slightly more space than they should; they are initially converted to the wrong format, and only the first image is changed to what it should be
+- (Not a bug, but still an issue) When running a demo disc on a real console, some games will only work if the internal ID matches that of the original game. For example, Luigi's Mansion (US) softlocks after the Nintendo screen unless the disc has an ID of GLME01.
