@@ -1,8 +1,7 @@
 # GC Demo Disc Tool
 This is a Windows utility that allows you to modify, add, or remove contents on an official Gamecube US demo disc. This includes almost all Interactive Multi-Game Demo Discs found at store kiosks, the Preview Disc, the Mario Kart: Double Dash Bonus Disc, and possibly others. The output ISO runs on both a real console and Dolphin.
 
-<img src="https://github.com/GateGuy/GCDemoDiscTool/blob/main/screenshot.png?raw=true" width="291" height="240" />
-<img src="https://github.com/GateGuy/GCDemoDiscTool/blob/main/screenshot2.png?raw=true" width="570" height="225" />
+<img src="https://github.com/GateGuy/GCDemoDiscTool/blob/main/screenshot.png?raw=true" width="436" height="360" />
 
 ### Features
 - Add any Gamecube ISO/GCM/TGC file to a demo disc, along with the appropriate menu graphics (icons, etc.), or you can use default graphics
@@ -11,6 +10,8 @@ This is a Windows utility that allows you to modify, add, or remove contents on 
 - Optionally set a timer or disable use of the memory card on a per-game basis, like the original kiosks
 - Change the disc ID, name, banner, and autoplay timer (amount of time with no button presses before content autoplays)
 - User friendliness is prioritized, with conversion and extraction done automatically (command line knowledge isn't required, Gamecube ISOs/GCMs are automatically converted into the appropriate format, PNG files can be used for textures, etc.)
+
+<img src="https://github.com/GateGuy/GCDemoDiscTool/blob/main/screenshot2.png?raw=true" width="855" height="338" />
 
 ### Legal Disclaimer
 No copyrighted content is included with this program. You have to supply the demo disc, ISOs, files for GBA injection, etc.
