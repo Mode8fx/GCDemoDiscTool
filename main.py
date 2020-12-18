@@ -96,7 +96,10 @@ def initTempFolder(initNewOnly=False):
 def manageDemoDisc():
 	global demoDiscFolder, demoDiscType, contentsFile, integrateExe, integratedFile
 	initScreen()
-	tempDDFContents = listdir(tempDemoDiscFolder)
+	try:
+		tempDDFContents = listdir(tempDemoDiscFolder)
+	except:
+		tempDDFContents = []
 	if path.exists(tempDemoDiscFolder) and len([f for f in tempDDFContents if path.isdir(path.join(tempDemoDiscFolder, f))]) > 0:
 		demoDiscFolder = path.join(tempDemoDiscFolder, listdir(tempDemoDiscFolder)[0])
 		print("You have previously started building a demo disc:")
@@ -113,7 +116,7 @@ def manageDemoDisc():
 		if sourceDemoDisc == "":
 			print("Demo disc not found.")
 			sleep(inputSleep)
-			inputHidden("Press Enter to exit.")
+			inputHidden("\nPress Enter to exit.")
 			sys.exit()
 		initTempFolder()
 		subprocess.call('\"'+gcit+'\" \"'+sourceDemoDisc+'\" -q -f gcreex -d \"'+tempDemoDiscFolder+'\"')
@@ -192,13 +195,13 @@ def prepareNewContent():
 		else:
 			print("\n"+limitedString("GBA emulator file not found. For more information, read '/tools/GC-GBA EmuInjector/PUT MvDK OR MPL DEMO HERE.txt'"))
 			sleep(inputSleep)
-			inputHidden("Action cancelled. Press Enter to continue.")
+			inputHidden("\nAction cancelled. Press Enter to continue.")
 			return
 		print("\nPlease select a GBA ROM File.")
 		sleep(msgSleep)
 		newGBAGame = askopenfilename(filetypes=[("GBA ROM File", ".gba .bin")])
 		if newGBAGame == "":
-			inputHidden("Action cancelled. Press Enter to continue.")
+			inputHidden("\nAction cancelled. Press Enter to continue.")
 		else:
 			size = path.getsize(newGBAGame)
 			if size > 16777216:
@@ -220,7 +223,8 @@ def prepareNewContent():
 		if not path.exists(gbaTransferFile):
 			print("\n"+limitedString("GBA transfer file not found. For more information, read '/tools/GC-GBA TransferInjector/PUT wario_agb.tgc HERE.txt'"))
 			sleep(inputSleep)
-			inputHidden("Action cancelled. Press Enter to continue.")
+			inputHidden("\nAction cancelled. Press Enter to continue.")
+			return
 		print("\nPlease select a GBA ROM File.")
 		sleep(msgSleep)
 		newGBAGame = askopenfilename(filetypes=[("GBA ROM File", ".gba .bin")])
@@ -232,7 +236,7 @@ def prepareNewContent():
 			if size > 262144:
 				print("This file is too big. Maximum size for GBA transfer is 256 KB.")
 				newGBAGame = ""
-				inputHidden("Action cancelled. Press Enter to continue.")
+				inputHidden("\nAction cancelled. Press Enter to continue.")
 			else:
 				print("Done.")
 				sleep(msgSleep)
@@ -244,14 +248,14 @@ def prepareNewContent():
 		print("\nTo inject an N64 ROM, use the GCM N64 ROMS Injector.")
 		print("https://github.com/sizious/gcm-n64-roms-injector")
 		sleep(inputSleep)
-		inputHidden("Press Enter to continue.")
+		inputHidden("\nPress Enter to continue.")
 	# else, do nothing (go back to menu)
 
 def removeContent():
 	if len(contentArray) == 0:
 		print("\nThere is no content to remove.")
 		sleep(msgSleep)
-		inputHidden("Press Enter to continue.")
+		inputHidden("\nPress Enter to continue.")
 		return
 	choice = makeChoice("What would you like to remove?", [c[0]+" | "+c[1]+" | "+c[2] for c in contentArray]+["Go Back"])
 	if choice == len(contentArray) + 1:
@@ -277,12 +281,12 @@ def buildDisc():
 		print("\nThe contents of the extracted disc take up too much space.")
 		print(limitedString("If you created a screen.tpl with more than one image, and you are only a few MB over the allocated space, you may want to manually open the TPL with a program like BrawlBox and change the format of each texture to CMPR (the default is RGB5A3, which takes up more space)."))
 		sleep(inputSleep)
-		inputHidden("Press Enter to continue.")
+		inputHidden("\nPress Enter to continue.")
 		return
 	if len(contentArray) == 0:
 		print("\nYou must add at least one game/movie to the disc before building.")
 		sleep(inputSleep)
-		inputHidden("Press Enter to continue.")
+		inputHidden("\nPress Enter to continue.")
 		return
 	if len(contentArray) < 5:
 		choice = makeChoice(limitedString("You have fewer than 5 games/movies. To prevent unintended visual bugs, would you like to duplicate menu options? This will not take up any additional space."), ["Yes (Recommended)", "No"])
@@ -304,13 +308,13 @@ def buildDisc():
 	while len(listdir(outputFolder)) > 0:
 		print(limitedString("A file already exists in "+outputFolder+". Please move, rename, or delete this file."))
 		sleep(inputSleep)
-		inputHidden("Press Enter to continue.")
+		inputHidden("\nPress Enter to continue.")
 	subprocess.call('\"'+gcit+'\" \"'+demoDiscFolder+'\" -q -d \"'+path.join(outputFolder, "output.iso")) # the name doesn't matter; gcit.exe forces a name
 	print("\n"+limitedString("Created new ISO in "+outputFolder+"."))
 	sleep(msgSleep)
 	print(limitedString("The currently extracted disc is stored in \""+demoDiscFolder+"\". Delete this folder if you are done building your disc."))
 	sleep(msgSleep)
-	inputHidden("Press Enter to exit.")
+	inputHidden("\nPress Enter to exit.")
 	sys.exit()
 
 def askForTextures(isGame=True):
@@ -535,7 +539,7 @@ def addNewContent(config_att, game, logo1, logo2, manual, screen, config_argumen
 	integrateFromContentArray()
 	print("\nAdded new content to extracted disc.")
 	sleep(inputSleep)
-	inputHidden("Press Enter to continue.")
+	inputHidden("\nPress Enter to continue.")
 
 def addTPL(original, originalType, finalPath, col=(128,128,128), text=None):
 	if original is not None:
@@ -658,7 +662,9 @@ def changeDiscSettings():
 		else:
 			print("\nAction cancelled.")
 			sleep(msgSleep)
-	inputHidden("Press Enter to continue.")
+	else:
+		return
+	inputHidden("\nPress Enter to continue.")
 
 def changeDefaultContentSettings():
 	global useDefaultSettings
@@ -674,6 +680,7 @@ def changeDefaultContentSettings():
 			useDefaultSettings = False
 			print("Advanced settings enabled.")
 			sleep(msgSleep)
+			inputHidden("\nPress Enter to continue.")
 	else:
 		print("\nAdvanced settings are enabled.")
 		print("Memory Card           - Ask for each content")
@@ -686,7 +693,7 @@ def changeDefaultContentSettings():
 			useDefaultSettings = True
 			print("Default settings enabled.")
 			sleep(msgSleep)
-	inputHidden("Press Enter to continue.")
+			inputHidden("\nPress Enter to continue.")
 
 def initScreen():
 	clearScreen()
