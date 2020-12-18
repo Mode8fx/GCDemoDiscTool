@@ -18,7 +18,6 @@ No copyrighted content is included with this program. You have to supply the dem
 Some of the tools bundled with this program are not made by me, but are required for its use:
 - [Gamecube ISO Tool](http://www.wiibackupmanager.co.uk/gcit.html) (Made by FIG2K4)
 - [GCMtoTGC](https://www.gc-forever.com/forums/viewtopic.php?t=17&start=24) (Made by Zochwar & Plootid)
-- [TGCtoGCM](https://www.gc-forever.com/forums/viewtopic.php?t=17&start=24) (Made by Zochwar & Plootid)
 - [Wiimms Image Tool](https://szs.wiimm.de/wimgt/) (Made by Wiimm)
 
 Additionally, the remaining tools are made by me and were (very slightly) modified for use in this program:
@@ -26,7 +25,7 @@ Additionally, the remaining tools are made by me and were (very slightly) modifi
 - [GC-GBA Transfer Injector](https://github.com/GateGuy/GC-GBA-TransferInjector)
 
 ### Known Bugs/Issues
-- Because the demo disc uses an internal ID that is different from any of its content, save files will look for this ID; in other words, a save file created for a game will not be compatible with a version of that game that exists on a generated demo disc
-- ESRB rating icons (the ones that appear onscreen after selecting a game) may have incorrect sizes depending on the original demo disc used (the common Preview Disc is confirmed to look normal)
-- TPL texture files generated from multiple images take up slightly more space than they should; they are initially converted to the wrong format, and only the first image is changed to what it should be
+- Because the demo disc uses an internal ID that is different from any of its content, save files will look for this ID; in other words, a save file created for a game will not be compatible with a version of that game that exists on a generated demo disc.
+- ESRB rating icons (the ones that appear onscreen after selecting a game) may have incorrect sizes depending on the original demo disc used (the common Preview Disc is confirmed to look normal).
+- TPL texture files generated from multiple images take up slightly more space than they should; they are initially converted to the wrong format, and only the first image is changed to what it should be.
 - (Not a bug, but still an issue) When running a demo disc on a real console, some games will only work if the internal ID matches that of the original game. For example, Luigi's Mansion (US) softlocks after the Nintendo screen unless the disc has an ID of GLME01.

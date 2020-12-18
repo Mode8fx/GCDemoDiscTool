@@ -19,7 +19,6 @@ outputFolder = path.join(currFolder, "output")
 
 gcit = path.join(currFolder, "tools", "Gamecube ISO Tool", "gcit.exe")
 gcmtotgc = path.join(currFolder, "tools", "gcmtotgc.exe")
-tgctogcm = path.join(currFolder, "tools", "tgctogcm.exe")
 wimgt = path.join(currFolder, "tools", "Wiimms Image Tool", "wimgt.exe")
 arialFont = path.join(currFolder, "tools", "arial.ttf")
 
@@ -744,9 +743,6 @@ def printCredits():
 	print("Made by FIG2K4")
 	print("http://www.wiibackupmanager.co.uk/gcit.html")
 	print("\nGCMtoTGC")
-	print("Made by Zochwar & Plootid")
-	print("https://www.gc-forever.com/forums/viewtopic.php?t=17&start=24")
-	print("\nTGCtoGCM")
 	print("Made by Zochwar & Plootid")
 	print("https://www.gc-forever.com/forums/viewtopic.php?t=17&start=24")
 	print("\nWiimms Image Tool")
