@@ -304,6 +304,7 @@ def buildDisc():
 		return
 	if choice == 3:
 		sys.exit()
+	integrateFromContentArray()
 	createDir(outputFolder)
 	while len(listdir(outputFolder)) > 0:
 		print(limitedString("A file already exists in "+outputFolder+". Please move, rename, or delete this file."))
@@ -737,7 +738,7 @@ def printHelpContents():
 
 def printCredits():
 	clearScreen()
-	print("\nGamecube Demo Disc Tool")
+	print("\nGamecube Demo Disc Tool v1.1")
 	print("Made by GateGuy")
 	print("https://github.com/GateGuy/GCDemoDiscTool")
 	print("\nGC-GBA EmuInjector")
